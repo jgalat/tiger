@@ -1,0 +1,44 @@
+let
+  type list = {item: int, rest: list}
+  var l := list {item = 1, rest = nil}
+  var a := 2
+  function cons(i : int, l : list) : list = list {item = i, rest = l}
+  function length(l : list) : int = if l = nil then 0 else 1 + length(l.rest)
+  function concat(l1 : list, l2 : list) : list =
+    if l1 = nil
+      then l2
+      else cons(l1.item, concat(l1.rest, l2))
+  function snoc(i : int, l : list) : list =
+    if l = nil
+      then list{item = i, rest = nil}
+      else cons(l.item, snoc (i, l.rest))
+  function filter(n : int, l : list) : list =
+    if l = nil
+      then nil
+      else if l.item = n
+            then cons(n, filter(n, l.rest))
+            else filter(n, l.rest)
+  function isIn(x : int, l : list) : int =
+    if l = nil
+      then 0
+      else if x = l.item
+              then 1
+              else isIn(x, l.rest)
+  function remove(x : int, l : list) : list =
+    if isIn(x, l) = 0
+      then l
+      else if l = nil
+              then nil
+              else if x = l.item
+                      then l.rest
+                      else cons(l.item, remove(x, l.rest))
+  function removeAll(x : int, l : list) : list =
+    if isIn(x, l) = 0
+      then l
+      else removeAll(x, remove(x, l))
+  function reverse(l : list) : list =
+    snoc(l.item, reverse(l.rest))
+in
+  cons (a, l);
+  0
+end

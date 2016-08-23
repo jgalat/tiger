@@ -1,12 +1,12 @@
 (*
-structure tigerpp :> tigerpp = 
+structure tigerpp :> tigerpp =
 struct
 *)
 
 open tigerabs
 open PP
 
-fun ppexpr pps e0 = 
+fun ppexpr pps e0 =
 	let
 		fun ppf{name,escape,typ} =
 			(add_string pps ("{name="^name^",");
@@ -147,7 +147,7 @@ fun ppexpr pps e0 =
 			end_block pps)
 		| ppe(IfExp({test, then', else'}, _)) =
 			(begin_block pps INCONSISTENT 0;
-			add_string pps "IfExp{"; add_break pps (0, 0); 
+			add_string pps "IfExp{"; add_break pps (0, 0);
 			add_string pps "test=";
 			ppe test; add_string pps ","; add_break pps (0, 0);
 			add_string pps "then'=";
@@ -162,7 +162,7 @@ fun ppexpr pps e0 =
 			add_string pps "CallExp{"; add_break pps (0, 0);
 			add_string pps ("func="^func^","); add_break pps (0, 0);
 			add_string pps "args=[";
-			List.app (fn e => (ppe e; add_break pps (0, 0))) args;
+			List.app (fn e 	=> (ppe e; add_break pps (0, 0); add_string pps ",")) args;
 			add_string pps "]}";
 			add_break pps (0, 0);
 			end_block pps)
@@ -203,13 +203,13 @@ fun ppexpr pps e0 =
 			ppe body; add_string pps "}";
 			end_block pps)
 	in
-		begin_block pps INCONSISTENT 0; 
+		begin_block pps INCONSISTENT 0;
 		ppe e0;
 		end_block pps
 	end
 val ppstrm =
 	PP.mk_ppstream {
-			consumer=fn s=>TextIO.output(TextIO.stdOut, s), 
+			consumer=fn s=>TextIO.output(TextIO.stdOut, s),
 			linewidth = 79,
 			flush=fn()=>TextIO.flushOut TextIO.stdOut
 	}
