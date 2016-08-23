@@ -1,0 +1,7 @@
+/* Hola mundo en tiger */
+
+let
+  var a := print("Hola mundo")
+in
+  0
+end
