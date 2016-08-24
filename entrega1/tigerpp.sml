@@ -4,6 +4,8 @@ struct
 *)
 
 open tigerabs
+open tigertips
+open tigersres
 open PP
 
 fun ppexpr pps e0 =
@@ -187,7 +189,7 @@ fun ppexpr pps e0 =
 			end_block pps)
 		| ppe(ArrayExp({typ, size, init}, _)) =
 			(begin_block pps INCONSISTENT 0;
-			add_string pps "ArrayExp{test=";
+			add_string pps "ArrayExp{typ=";
 			add_string pps (typ^","); add_break pps (0, 1);
 			add_string pps "size=";
 			ppe size; add_string pps ","; add_break pps (0, 1);
@@ -216,5 +218,26 @@ val ppstrm =
 
 fun exprAst e =
 	(ppexpr ppstrm e;
+	flush_ppstream ppstrm;
+	TextIO.output(TextIO.stdOut, "\n"))
+
+fun pptype pps TUnit = add_string pps "()"
+	| pptype pps TNil = add_string pps "nil"
+	| pptype pps TInt = add_string pps "int"
+	| pptype pps TString = add_string pps "string"
+	| pptype pps (TArray (ref t, _)) = (add_string pps "array of "; pptype pps t)
+	| pptype pps (TRecord (l, _)) = (add_string pps "record of {";
+																		List.app (fn(_,ref t,_) => (pptype pps t; add_string pps "," ; add_break pps (0,0))) l;
+																		add_string pps "}")
+	| pptype pps (TTipo t) = add_string pps t
+
+fun ppenve pps VIntro = add_string pps "read only Int"
+	| ppenve pps (Var {ty}) = (add_string pps "Var " ; pptype pps ty)
+	| ppenve pps (Func {level, label,	formals, result, extern}) = (add_string pps "Fun " ;
+																						List.app(fn(t) => (pptype pps t; add_string pps "*" ; add_break pps (0,0))) formals;
+																						add_string pps " -> " ; pptype pps result)
+
+fun ppEnv e =
+	(ppenve ppstrm e;
 	flush_ppstream ppstrm;
 	TextIO.output(TextIO.stdOut, "\n"))

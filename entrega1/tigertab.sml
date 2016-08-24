@@ -13,7 +13,7 @@ fun fromTab t =
 	let	val t' = tabNueva()
 	in	apply (fn x => insert t' x) t; t' end
 fun name x = x
-fun tabEsta(s, t) = 
+fun tabEsta(s, t) =
 	case peek t s of
 	SOME _ => true
 	| NONE => false
@@ -25,7 +25,7 @@ fun tabSaca(s, t) =
 	SOME t => t
 	| NONE => raise noExiste
 fun tabAplica(f, t) = map(fn(_, e) => f e) t
-fun tabAAplica(f, g, t) = 
+fun tabAAplica(f, g, t) =
 	let	val l' = listItems t
 		val t' = mkPolyTable(100, noExiste)
 	in
@@ -33,7 +33,7 @@ fun tabAAplica(f, g, t) =
 			(List.map(fn(k, e) => (f k, g e)) l');
 		t'
 	end
-fun tabRAAplica(f, g, t) = 
+fun tabRAAplica(f, g, t) =
 	let	val l' = rev(listItems t)
 		val t' = mkPolyTable(100, noExiste)
 	in
@@ -41,7 +41,13 @@ fun tabRAAplica(f, g, t) =
 			(List.map(fn(k, e) => (f k, g e)) l');
 		t'
 	end
-fun tabInserList(t, l) = 
+fun tabPrint(f, g, t) =
+	let	val l' = listItems t
+	    val xd = List.map(fn(k, e) => f(k) ^ " -> " ^ g(e)^"\n") l';
+	in
+		List.foldl(fn(s1, s2) => s1 ^ s2) "" xd
+	end
+fun tabInserList(t, l) =
 	let val t' = copy t in (List.app(fn(s, e) => insert t' (s, e)) l; t') end
 fun tabAList t = listItems t
 fun tabFiltra(f, t) =

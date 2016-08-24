@@ -38,7 +38,21 @@ let
       else removeAll(x, remove(x, l))
   function reverse(l : list) : list =
     snoc(l.item, reverse(l.rest))
+  function print_int(i:int)=
+    let function f(i:int) =
+      if i>0
+        then (f(i/10);print(chr(i-i/10*10+ord("0"))))
+    in if i<0
+         then (print("-") ; f(-i))
+         else if i> 0
+                then f(i)
+                else print("0")
+    end
+  function print_list(l:list) =
+    if l = nil
+      then print("\n")
+      else (print_int(l.first) ; print (", ") ; print_list l.rest)
+
 in
-  cons (a, l);
   0
 end

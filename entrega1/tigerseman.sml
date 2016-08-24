@@ -37,14 +37,14 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
 		formals=[TInt], result=TUnit, extern=true})
 	])
 
-fun tipoReal (TTipo s, (env : tenv)) : Tipo = 
-    (case tabBusca(s , env) of 
-         NONE => raise Fail "tipoReal Ttipo"
+fun tipoReal (TTipo s, (env : tenv)) : Tipo =
+    (case tabBusca(s , env) of
+         NONE => raise Fail "typeReal TType"
        | SOME t => t)
   | tipoReal (t, _) = t
 
-fun tiposIguales (TRecord _) TNil = true
-  | tiposIguales TNil (TRecord _) = true 
+	fun tiposIguales (TRecord _) TNil = true
+  | tiposIguales TNil (TRecord _) = true
   | tiposIguales (TRecord (_, u1)) (TRecord (_, u2 )) = (u1=u2)
   | tiposIguales (TArray (_, u1)) (TArray (_, u2)) = (u1=u2)
   | tiposIguales (TTipo _) b =
@@ -54,7 +54,7 @@ fun tiposIguales (TRecord _) TNil = true
 		(* 		| NONE => raise Fail "No debería pasar! (1)" *)
 		(* in *)
 		(* 	tiposIguales a b *)
-		(* end *)raise Fail "No debería pasar! (1)"
+		(* end *)raise Fail "Shouldn't happen! (1)"
   | tiposIguales a (TTipo _) =
 		(* let *)
 		(* 	val b = case !r of *)
@@ -82,7 +82,7 @@ fun transExp(venv, tenv) =
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=(), ty=TInt}
 					else error("Tipos no comparables", nl)
 			end
-		| trexp(OpExp({left, oper=NeqOp, right}, nl)) = 
+		| trexp(OpExp({left, oper=NeqOp, right}, nl)) =
 			let
 				val {exp=_, ty=tyl} = trexp left
 				val {exp=_, ty=tyr} = trexp right
@@ -90,7 +90,7 @@ fun transExp(venv, tenv) =
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=(), ty=TInt}
 					else error("Tipos no comparables", nl)
 			end
-		| trexp(OpExp({left, oper, right}, nl)) = 
+		| trexp(OpExp({left, oper, right}, nl)) =
 			let
 				val {exp=_, ty=tyl} = trexp left
 				val {exp=_, ty=tyr} = trexp right
@@ -119,7 +119,7 @@ fun transExp(venv, tenv) =
 						TRecord (cs, u) => (TRecord (cs, u), cs)
 						| _ => error(typ^" no es de tipo record", nl))
 					| NONE => error("Tipo inexistente ("^typ^")", nl)
-				
+
 				(* Verificar que cada campo esté en orden y tenga una expresión del tipo que corresponde *)
 				fun verificar [] [] = ()
 				  | verificar (c::cs) [] = error("Faltan campos", nl)
@@ -171,7 +171,7 @@ fun transExp(venv, tenv) =
 			let
 				val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
 				val {exp=expbody,ty=tybody}=transExp (venv', tenv') body
-			in 
+			in
 				{exp=(), ty=tybody}
 			end
 		| trexp(BreakExp nl) =
@@ -184,7 +184,7 @@ fun transExp(venv, tenv) =
 			{exp=(), ty=TUnit} (*COMPLETAR*)
 		| trvar(SubscriptVar(v, e), nl) =
 			{exp=(), ty=TUnit} (*COMPLETAR*)
-		and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
+		and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
 			(venv, tenv, []) (*COMPLETAR*)
 		| trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
 			(venv, tenv, []) (*COMPLETAR*)
@@ -196,7 +196,7 @@ fun transExp(venv, tenv) =
 fun transProg ex =
 	let	val main =
 				LetExp({decs=[FunctionDec[({name="_tigermain", params=[],
-								result=NONE, body=ex}, 0)]],
+								result=SOME "int", body=ex}, 0)]],
 						body=UnitExp 0}, 0)
 		val _ = transExp(tab_vars, tab_tipos) main
 	in	print "bien!\n" end

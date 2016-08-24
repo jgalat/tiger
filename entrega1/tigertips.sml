@@ -8,6 +8,5 @@ datatype Tipo = TUnit
 	| TString
 	| TArray of Tipo ref  * unique
 	| TRecord of (string * Tipo ref * int) list * unique
-	| TTipo of string 
-
+	| TTipo of string
 end
