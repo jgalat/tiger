@@ -5,7 +5,7 @@ struct
 
 open tigerabs
 open tigertips
-open tigersres
+(*open tigersres*)
 open PP
 
 fun ppexpr pps e0 =
@@ -231,9 +231,9 @@ fun pptype pps TUnit = add_string pps "()"
 																		add_string pps "}")
 	| pptype pps (TTipo t) = add_string pps t
 
-fun ppenve pps VIntro = add_string pps "read only Int"
-	| ppenve pps (Var {ty}) = (add_string pps "Var " ; pptype pps ty)
-	| ppenve pps (Func {level, label,	formals, result, extern}) = (add_string pps "Fun " ;
+fun ppenve pps tigersres.VIntro = add_string pps "read only Int"
+	| ppenve pps (tigersres.Var {ty}) = (add_string pps "Var " ; pptype pps ty)
+	| ppenve pps (tigersres.Func {level, label,	formals, result, extern}) = (add_string pps "Fun " ;
 																						List.app(fn(t) => (pptype pps t; add_string pps "*" ; add_break pps (0,0))) formals;
 																						add_string pps " -> " ; pptype pps result)
 

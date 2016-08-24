@@ -43,9 +43,9 @@ fun tabRAAplica(f, g, t) =
 	end
 fun tabPrint(f, g, t) =
 	let	val l' = listItems t
-	    val xd = List.map(fn(k, e) => f(k) ^ " -> " ^ g(e)^"\n") l';
+	    val l'' = List.map(fn(k, e) => f(k) ^ " -> " ^ g(e)^"\n") l';
 	in
-		List.foldl(fn(s1, s2) => s1 ^ s2) "" xd
+		List.foldl(fn(s1, s2) => s1 ^ s2) "" l''
 	end
 fun tabInserList(t, l) =
 	let val t' = copy t in (List.app(fn(s, e) => insert t' (s, e)) l; t') end

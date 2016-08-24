@@ -137,10 +137,19 @@ fun transExp(venv, tenv) =
 				val exprs = map (fn{exp, ty} => exp) lexti
 				val {exp, ty=tipo} = hd(rev lexti)
 			in	{ exp=(), ty=tipo } end
-		| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
-			{exp=(), ty=TUnit} (*COMPLETAR*)
-		| trexp(AssignExp({var, exp}, nl)) =
-			{exp=(), ty=TUnit} (*COMPLETAR*)
+		| trexp(AssignExp({var = SimpleVar s, exp}, nl)) =
+				let val _ = (case tabBusca(s, venv) of
+									NONE => error(s^": Variable is not in scope", nl)
+									|SOME VIntro 		=> error(s^": Read only variable", nl)
+									|SOME (Func _) 	=> error(s^": Assigning an expression to a function", nl)
+									| _ 						=> ())
+						val {exp=_, ty=typVar} = trvar(SimpleVar s, nl)
+						val {exp=_ , ty=typExp} = trexp exp
+				in if tiposIguales typVar typExp
+					 		then {exp = (), ty = TUnit}
+							else error(s^": Types do not match", nl)
+				end
+		| trexp(AssignExp({var, exp}, nl)) = {exp = (), ty = TUnit}
 		| trexp(IfExp({test, then', else'=SOME else'}, nl)) =
 			let val {exp=testexp, ty=tytest} = trexp test
 			    val {exp=thenexp, ty=tythen} = trexp then'
@@ -179,6 +188,11 @@ fun transExp(venv, tenv) =
 		| trexp(ArrayExp({typ, size, init}, nl)) =
 			{exp=(), ty=TUnit} (*COMPLETAR*)
 		and trvar(SimpleVar s, nl) =
+(*					case tabBusca(s, venv) of
+							NONE 					=> error(s^": Undefined variable", nl)
+							| SOME typVar => if tiposIguales(typVar, trexp exp)
+																	then {exp=(), ty = typVar}
+																	else error(s^": Types do not match", nl) *)
 			{exp=(), ty=TUnit} (*COMPLETAR*)
 		| trvar(FieldVar(v, s), nl) =
 			{exp=(), ty=TUnit} (*COMPLETAR*)
