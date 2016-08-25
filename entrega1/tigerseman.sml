@@ -65,6 +65,9 @@ fun tipoReal (TTipo s, (env : tenv)) : Tipo =
 		(* end *)raise Fail "Shouldn't happen! (2)"
   | tiposIguales a b = (a=b)
 
+fun isInt TInt = true
+    |isInt _    = false
+
 fun transExp(venv, tenv) =
 	let fun error(s, p) = raise Fail ("Error -- line "^Int.toString(p)^": "^s^"\n")
 		fun trexp(VarExp v) = trvar(v)
@@ -72,8 +75,26 @@ fun transExp(venv, tenv) =
 		| trexp(NilExp _)= {exp=(), ty=TNil}
 		| trexp(IntExp(i, _)) = {exp=(), ty=TInt}
 		| trexp(StringExp(s, _)) = {exp=(), ty=TString}
-		| trexp(CallExp({func, args}, nl)) =
-			{exp=(), ty=TUnit} (*COMPLETAR*)
+		| trexp(CallExp({func, args}, nl)) = 
+            let
+                val (tArgs, ext, tRet, lab, lvl) = case tabBusca (func, venv) of
+                     SOME (Func {formals, extern, result, label, level})  => (formals, extern, result, label, level)
+                    |SOME _ => error(func^": Is not a function", nl)
+                    |NONE   => error(func^": Not defined", nl)
+                fun aux [] [] r = r
+                   |aux [] _ r  = error("Too many arguments", nl)
+                   |aux _ [] r  = error("Few arguments", nl)
+                   |aux (x::xs) (y::ys) r = let val {exp = expY, ty = tY} = trexp y
+                                                val _ = tiposIguales x tY
+                                                        handle _ => error("Incorrect types", nl)
+                                            in aux xs ys r@[{exp = expY, ty = tY}]
+                                            end
+                val leArgs  = aux tArgs args []
+                val leArgs' = map #exp leArgs
+                val pf      = tRet = TUnit
+            in
+                {exp = (), ty = tRet}
+            end
 		| trexp(OpExp({left, oper=EqOp, right}, nl)) =
 			let
 				val {exp=_, ty=tyl} = trexp left
@@ -138,18 +159,25 @@ fun transExp(venv, tenv) =
 				val {exp, ty=tipo} = hd(rev lexti)
 			in	{ exp=(), ty=tipo } end
 		| trexp(AssignExp({var = SimpleVar s, exp}, nl)) =
-				let val _ = (case tabBusca(s, venv) of
+				let val _ = (case tabBusca (s, venv) of
 									NONE => error(s^": Variable is not in scope", nl)
 									|SOME VIntro 		=> error(s^": Read only variable", nl)
 									|SOME (Func _) 	=> error(s^": Assigning an expression to a function", nl)
 									| _ 						=> ())
-						val {exp=_, ty=typVar} = trvar(SimpleVar s, nl)
-						val {exp=_ , ty=typExp} = trexp exp
+						val {exp = _, ty=typVar} = trvar (SimpleVar s, nl)
+						val {exp = _, ty=typExp} = trexp exp
 				in if tiposIguales typVar typExp
 					 		then {exp = (), ty = TUnit}
-							else error(s^": Types do not match", nl)
+							else error (s^": Types do not match", nl)
 				end
-		| trexp(AssignExp({var, exp}, nl)) = {exp = (), ty = TUnit}
+		| trexp(AssignExp({var, exp}, nl)) = 
+                let val {exp = _, ty = typVar} = trvar (var, nl)
+                    val {exp = _, ty = typExp} = trexp exp
+                in
+                    if tiposIguales typVar typExp
+                        then {exp = (), ty = TUnit}
+                        else error("Types do not match", nl)
+                end                     
 		| trexp(IfExp({test, then', else'=SOME else'}, nl)) =
 			let val {exp=testexp, ty=tytest} = trexp test
 			    val {exp=thenexp, ty=tythen} = trexp then'
@@ -175,7 +203,15 @@ fun transExp(venv, tenv) =
 				else error("Body should be unit type", nl)
 			end
 		| trexp(ForExp({var, escape, lo, hi, body}, nl)) =
-			{exp=(), ty=TUnit} (*COMPLETAR*)
+            let val {exp = _, ty = typHi} = trexp hi
+                val {exp = _, ty = typLo} = trexp lo
+                val _ = if isInt typLo andalso isInt typHi then () else error("Boundaries not Int", nl)
+                val venv' = fromTab venv
+                val _ = tabInserta (var, VIntro, venv')
+                val {exp = _, ty = typBody} = transExp (venv', tenv) body
+            in
+                if typBody = TUnit then {exp = (), ty = TUnit} else error("Incorrect Type", nl)
+            end
 		| trexp(LetExp({decs, body}, _)) =
 			let
 				val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
