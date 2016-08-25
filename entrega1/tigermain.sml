@@ -6,19 +6,19 @@ open BasicIO Nonstdio
 
 fun lexstream(is: instream) =
 	Lexing.createLexer(fn b => fn n => buff_input is b 0 n);
-fun errParsing(lbuf) = (print("Error en parsing!("
+fun errParsing(lbuf) = (print("Parsing error!("
 	^(makestring(!num_linea))^
-	")["^(Lexing.getLexeme lbuf)^"]\n"); raise Fail "fin!")
+	")["^(Lexing.getLexeme lbuf)^"]\n"); raise Fail "done!")
 fun main(args) =
 	let	fun arg(l, s) =
 			(List.exists (fn x => x=s) l, List.filter (fn x => x<>s) l)
 		val (arbol, l1)		= arg(args, "-tree")
 		val (escapes, l2)	= arg(l1, "-escapes")
-		val (ir, l3)		= arg(l2, "-ir")
+		val (ir, l3)		= arg(l2, "-go")
 		val (canon, l4)		= arg(l3, "-canon")
 		val (code, l5)		= arg(l4, "-code")
 		val (flow, l6)		= arg(l5, "-flow")
-		val (inter, l7)		= arg(l6, "-inter")
+		val (inter, l7)		= arg(l6, "-interp")
 		val entrada =
 			case l7 of
 			[n] => ((open_in n)

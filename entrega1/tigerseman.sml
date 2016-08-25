@@ -62,11 +62,11 @@ fun tipoReal (TTipo s, (env : tenv)) : Tipo =
 		(* 		| NONE => raise Fail "No debería pasar! (2)" *)
 		(* in *)
 		(* 	tiposIguales a b *)
-		(* end *)raise Fail "No debería pasar! (2)"
+		(* end *)raise Fail "Shouldn't happen! (2)"
   | tiposIguales a b = (a=b)
 
 fun transExp(venv, tenv) =
-	let fun error(s, p) = raise Fail ("Error -- línea "^Int.toString(p)^": "^s^"\n")
+	let fun error(s, p) = raise Fail ("Error -- line "^Int.toString(p)^": "^s^"\n")
 		fun trexp(VarExp v) = trvar(v)
 		| trexp(UnitExp _) = {exp=(), ty=TUnit}
 		| trexp(NilExp _)= {exp=(), ty=TNil}
@@ -80,7 +80,7 @@ fun transExp(venv, tenv) =
 				val {exp=_, ty=tyr} = trexp right
 			in
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=(), ty=TInt}
-					else error("Tipos no comparables", nl)
+					else error("Incomparable types", nl)
 			end
 		| trexp(OpExp({left, oper=NeqOp, right}, nl)) =
 			let
@@ -88,7 +88,7 @@ fun transExp(venv, tenv) =
 				val {exp=_, ty=tyr} = trexp right
 			in
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=(), ty=TInt}
-					else error("Tipos no comparables", nl)
+					else error("Incomparable types", nl)
 			end
 		| trexp(OpExp({left, oper, right}, nl)) =
 			let
@@ -97,16 +97,16 @@ fun transExp(venv, tenv) =
 			in
 				if tiposIguales tyl tyr then
 					case oper of
-						PlusOp => if tipoReal(tyl, tenv)=TInt then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| MinusOp => if tipoReal(tyl,tenv)=TInt then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| TimesOp => if tipoReal(tyl,tenv)=TInt then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| DivideOp => if tipoReal(tyl,tenv)=TInt then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| LtOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| LeOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| GtOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| GeOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Error de tipos", nl)
-						| _ => raise Fail "No debería pasar! (3)"
-				else error("Error de tipos", nl)
+						PlusOp => if tipoReal(tyl, tenv)=TInt then {exp=(),ty=TInt} else error("Type error", nl)
+						| MinusOp => if tipoReal(tyl,tenv)=TInt then {exp=(),ty=TInt} else error("Type error", nl)
+						| TimesOp => if tipoReal(tyl,tenv)=TInt then {exp=(),ty=TInt} else error("Type error", nl)
+						| DivideOp => if tipoReal(tyl,tenv)=TInt then {exp=(),ty=TInt} else error("Type error", nl)
+						| LtOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Type error", nl)
+						| LeOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Type error", nl)
+						| GtOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Type error", nl)
+						| GeOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Type error", nl)
+						| _ => raise Fail "Shouldn't happen! (3)"
+				else error("Type error", nl)
 			end
 		| trexp(RecordExp({fields, typ}, nl)) =
 			let
@@ -117,17 +117,17 @@ fun transExp(venv, tenv) =
 				val (tyr, cs) = case tabBusca(typ, tenv) of
 					SOME t => (case tipoReal(t,tenv) of
 						TRecord (cs, u) => (TRecord (cs, u), cs)
-						| _ => error(typ^" no es de tipo record", nl))
-					| NONE => error("Tipo inexistente ("^typ^")", nl)
+						| _ => error(typ^" isn't a record type", nl))
+					| NONE => error("Type \""^typ^"\" doesn't exist", nl)
 
 				(* Verificar que cada campo esté en orden y tenga una expresión del tipo que corresponde *)
 				fun verificar [] [] = ()
-				  | verificar (c::cs) [] = error("Faltan campos", nl)
-				  | verificar [] (c::cs) = error("Sobran campos", nl)
+				  | verificar (c::cs) [] = error("Missing fields", nl)
+				  | verificar [] (c::cs) = error("Spare fields", nl)
 				  | verificar ((s,t,_)::cs) ((sy,{exp,ty})::ds) =
-						if s<>sy then error("Error de campo", nl)
+						if s<>sy then error("Field error", nl)
 						else if tiposIguales ty (!t) then verificar cs ds
-							 else error("Error de tipo del campo "^s, nl)
+							 else error("Field's type error "^s, nl)
 				val _ = verificar cs tfields
 			in
 				{exp=(), ty=tyr}
@@ -156,23 +156,23 @@ fun transExp(venv, tenv) =
 			    val {exp=elseexp, ty=tyelse} = trexp else'
 			in
 				if tipoReal(tytest,tenv)=TInt andalso tiposIguales tythen tyelse then {exp=(), ty=tythen}
-				else error("Error de tipos en if" ,nl)
+				else error("Type error" ,nl)
 			end
 		| trexp(IfExp({test, then', else'=NONE}, nl)) =
 			let val {exp=exptest,ty=tytest} = trexp test
 			    val {exp=expthen,ty=tythen} = trexp then'
 			in
 				if tipoReal(tytest,tenv)=TInt andalso tythen=TUnit then {exp=(), ty=TUnit}
-				else error("Error de tipos en if", nl)
+				else error("Type error", nl)
 			end
 		| trexp(WhileExp({test, body}, nl)) =
 			let
-				val ttest = trexp test
-				val tbody = trexp body
+				val {exp = exptest, ty = ttest} = trexp test
+				val {exp = expbody, ty = tbody} = trexp body
 			in
-				if tipoReal(#ty ttest, tenv) = TInt andalso #ty tbody = TUnit then {exp=(), ty=TUnit}
-				else if tipoReal(#ty ttest, tenv) <> TInt then error("Error de tipo en la condición", nl)
-				else error("El cuerpo de un while no puede devolver un valor", nl)
+				if tipoReal(ttest, tenv) = TInt andalso tbody = TUnit then {exp=(), ty=TUnit}
+				else if tipoReal(ttest, tenv) <> TInt then error("Type error in condition", nl)
+				else error("Body should be unit type", nl)
 			end
 		| trexp(ForExp({var, escape, lo, hi, body}, nl)) =
 			{exp=(), ty=TUnit} (*COMPLETAR*)
@@ -213,5 +213,5 @@ fun transProg ex =
 								result=SOME "int", body=ex}, 0)]],
 						body=UnitExp 0}, 0)
 		val _ = transExp(tab_vars, tab_tipos) main
-	in	print "bien!\n" end
+	in	print "good!\n" end
 end

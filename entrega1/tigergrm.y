@@ -4,7 +4,7 @@ open tigerabs
 fun P() = !tigernlin.num_linea
 
 fun nombre(SimpleVar s) = s
-| nombre _ = raise Fail "Imposible que no sea SimpleVar!"
+| nombre _ = raise Fail "Should be SimpleVar!"
 
 fun fundeLFunTipos(TypeDec[dt], (TypeDec(hdt))::t) =
 	TypeDec(dt::hdt)::t
@@ -30,15 +30,15 @@ fun fundeLFunTipos(TypeDec[dt], (TypeDec(hdt))::t) =
 %type<tigerabs.field list> tyflds
 %type<tigerabs.exp> exp
 %type<tigerabs.exp list> explist
-%type<(tigerabs.symbol*tigerabs.exp) list> rec_fields 
-%type<tigerabs.exp list> args 
+%type<(tigerabs.symbol*tigerabs.exp) list> rec_fields
+%type<tigerabs.exp list> args
 %type<var> l_value
 %type<tigerabs.dec> dec
 %type<tigerabs.dec> vardec
-%type<tigerabs.dec> fundec 
-%type<tigerabs.dec list> decs 
+%type<tigerabs.dec> fundec
+%type<tigerabs.dec list> decs
 
-%nonassoc THEN 
+%nonassoc THEN
 %left ELSE
 %nonassoc DO
 %nonassoc OF
@@ -102,7 +102,7 @@ explist: exp PCOMA explist	{ $1::$3 }
 rec_fields : id IGUAL exp COMA rec_fields
 							{ ($1, $3)::$5 }
 	| id IGUAL exp			{ [($1, $3)] }
-	|						{ [] }	
+	|						{ [] }
 	;
 decs : dec decs				{ fundeLFunTipos($1, $2) }
 	|						{ [] }
@@ -111,7 +111,7 @@ dec : TYPE id IGUAL ty		{ TypeDec[({name=$2, ty=$4}, P())] }
 	| vardec				{ $1 }
 	| fundec				{ $1 }
 	;
-ty : id						{ NameTy $1 }		
+ty : id						{ NameTy $1 }
 	| LI tyflds LD			{ RecordTy $2 }
 	| ARRAY OF id			{ ArrayTy $3 }
 	;
