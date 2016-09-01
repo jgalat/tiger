@@ -54,7 +54,7 @@ fun tipoReal (TTipo (s,_), (env : tenv)) : Tipo =
     (*     | NONE => raise Fail "No debería pasar! (1)" *)
     (* in *)
     (*   tiposIguales a b *)
-    (* end *)raise Fail "Shouldn't happen! (1)"
+    (* end *)raise Fail "shouldn't happen! (1)"
   | tiposIguales a (TTipo _) =
     (* let *)
     (*   val b = case !r of *)
@@ -62,7 +62,7 @@ fun tipoReal (TTipo (s,_), (env : tenv)) : Tipo =
     (*     | NONE => raise Fail "No debería pasar! (2)" *)
     (* in *)
     (*   tiposIguales a b *)
-    (* end *)raise Fail "Shouldn't happen! (2)"
+    (* end *)raise Fail "shouldn't happen! (2)"
   | tiposIguales a b = (a=b)
 
 fun isInt TInt = true
