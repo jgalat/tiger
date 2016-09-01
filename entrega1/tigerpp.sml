@@ -229,7 +229,7 @@ fun pptype pps TUnit = add_string pps "()"
   | pptype pps (TRecord (l, _)) = (add_string pps "record of {";
                                     List.app (fn(_,ref t,_) => (pptype pps t; add_string pps "," ; add_break pps (0,0))) l;
                                     add_string pps "}")
-  | pptype pps (TTipo t) = add_string pps t
+  | pptype pps (TTipo (t,_)) = add_string pps t 
 
 fun ppenve pps tigersres.VIntro = add_string pps "read only Int"
   | ppenve pps (tigersres.Var {ty}) = (add_string pps "Var " ; pptype pps ty)

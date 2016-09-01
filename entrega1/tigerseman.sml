@@ -37,7 +37,7 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
     formals=[TInt], result=TUnit, extern=true})
   ])
 
-fun tipoReal (TTipo s, (env : tenv)) : Tipo =
+fun tipoReal (TTipo (s,_), (env : tenv)) : Tipo =
     (case tabBusca(s , env) of
          NONE => raise Fail "typeReal TType"
        | SOME t => t)
@@ -79,14 +79,14 @@ fun transExp(venv, tenv) =
             let
                 val (tArgs, ext, tRet, lab, lvl) = case tabBusca (func, venv) of
                      SOME (Func {formals, extern, result, label, level})  => (formals, extern, result, label, level)
-                    |SOME _ => error(func^": Is not a function", nl)
-                    |NONE   => error(func^": Not defined", nl)
+                    |SOME _ => error(func^": is not a function", nl)
+                    |NONE   => error(func^": not defined", nl)
                 fun aux [] [] r = r
-                   |aux [] _ r  = error("Too many arguments", nl)
-                   |aux _ [] r  = error("Few arguments", nl)
+                   |aux [] _ r  = error("too many arguments", nl)
+                   |aux _ [] r  = error("few arguments", nl)
                    |aux (x::xs) (y::ys) r = let val {exp = expY, ty = tY} = trexp y
                                                 val _ = tiposIguales x tY
-                                                        handle _ => error("Incorrect types", nl)
+                                                        handle _ => error("incorrect types", nl)
                                             in aux xs ys r@[{exp = expY, ty = tY}]
                                             end
                 val leArgs  = aux tArgs args []
@@ -101,7 +101,7 @@ fun transExp(venv, tenv) =
         val {exp=_, ty=tyr} = trexp right
       in
         if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=(), ty=TInt}
-          else error("Incomparable types", nl)
+          else error("incomparable types", nl)
       end
     | trexp(OpExp({left, oper=NeqOp, right}, nl)) =
       let
@@ -109,7 +109,7 @@ fun transExp(venv, tenv) =
         val {exp=_, ty=tyr} = trexp right
       in
         if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=(), ty=TInt}
-          else error("Incomparable types", nl)
+          else error("incomparable types", nl)
       end
     | trexp(OpExp({left, oper, right}, nl)) =
       let
@@ -126,7 +126,7 @@ fun transExp(venv, tenv) =
             | LeOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Type error", nl)
             | GtOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Type error", nl)
             | GeOp => if tipoReal(tyl,tenv)=TInt orelse tipoReal(tyl,tenv)=TString then {exp=(),ty=TInt} else error("Type error", nl)
-            | _ => raise Fail "Shouldn't happen! (3)"
+            | _ => raise Fail "shouldn't happen! (3)"
         else error("Type error", nl)
       end
     | trexp(RecordExp({fields, typ}, nl)) =
@@ -143,12 +143,12 @@ fun transExp(venv, tenv) =
 
         (* Verificar que cada campo esté en orden y tenga una expresión del tipo que corresponde *)
         fun verificar [] [] = ()
-          | verificar (c::cs) [] = error("Missing fields", nl)
-          | verificar [] (c::cs) = error("Spare fields", nl)
+          | verificar (c::cs) [] = error("missing fields", nl)
+          | verificar [] (c::cs) = error("spare fields", nl)
           | verificar ((s,t,_)::cs) ((sy,{exp,ty})::ds) =
-            if s<>sy then error("Field error", nl)
+            if s<>sy then error("field error", nl)
             else if tiposIguales ty (!t) then verificar cs ds
-               else error("Field's type error "^s, nl)
+               else error("field's type error "^s, nl)
         val _ = verificar cs tfields
       in
         {exp=(), ty=tyr}
@@ -160,13 +160,13 @@ fun transExp(venv, tenv) =
       in  { exp=(), ty=tipo } end
     | trexp(AssignExp({var = SimpleVar s, exp}, nl)) =
         let val _ = (case tabBusca (s, venv) of
-                  NONE => error(s^": Variable is not in scope", nl)
-                | SOME VIntro     => error(s^": Read only variable", nl)
-                | SOME (Func _)   => error(s^": Assigning an expression to a function", nl)
+                  NONE => error(s^": variable is not in scope", nl)
+                | SOME VIntro     => error(s^": read only variable", nl)
+                | SOME (Func _)   => error(s^": assigning an expression to a function", nl)
                 | _               => ())
             val {exp = _, ty=typVar} = trvar (SimpleVar s, nl)
             val {exp = _, ty=typExp} = trexp exp
-        in if tiposIguales typVar typExp
+        in if tiposIguales (tipoReal (typVar,tenv)) typExp
                then {exp = (), ty = TUnit}
               else error (s^": Types do not match", nl)
         end
@@ -199,18 +199,18 @@ fun transExp(venv, tenv) =
         val {exp = expbody, ty = tbody} = trexp body
       in
         if tipoReal(ttest, tenv) = TInt andalso tbody = TUnit then {exp=(), ty=TUnit}
-        else if tipoReal(ttest, tenv) <> TInt then error("Type error in condition", nl)
-        else error("Body should be unit type", nl)
+        else if tipoReal(ttest, tenv) <> TInt then error("type error in condition", nl)
+        else error("body should be unit type", nl)
       end
     | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
             let val {exp = _, ty = typHi} = trexp hi
                 val {exp = _, ty = typLo} = trexp lo
-                val _ = if isInt typLo andalso isInt typHi then () else error("Boundaries not Int", nl)
+                val _ = if isInt typLo andalso isInt typHi then () else error("boundaries not Int", nl)
                 val venv' = fromTab venv
                 val _ = tabInserta (var, VIntro, venv')
                 val {exp = _, ty = typBody} = transExp (venv', tenv) body
             in
-                if typBody = TUnit then {exp = (), ty = TUnit} else error("Incorrect Type", nl)
+                if typBody = TUnit then {exp = (), ty = TUnit} else error("incorrect Type", nl)
             end
     | trexp(LetExp({decs, body}, _)) =
       let
@@ -225,7 +225,7 @@ fun transExp(venv, tenv) =
       {exp=(), ty=TUnit} (*COMPLETAR*)
     and trvar(SimpleVar s, nl) =
       (case tabBusca(s, venv) of
-            NONE        => error(s^": Undefined variable", nl)
+            NONE        => error(s^": undefined variable", nl)
 					| SOME VIntro => {exp = (), ty = TInt}
 					| SOME (Var {ty}) => {exp = () , ty = ty}
 					| SOME _      => error(s^": is a function, not a variable", nl))
