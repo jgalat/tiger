@@ -35,16 +35,16 @@ fun topsort P =
 	in	tsort P (elementos P) [] end
 
 fun buscaArrRecords lt =
-	let	fun buscaRecs [] res = res
-		| buscaRecs({name, ty=RecordTy lf}::t) res =
+	let	fun buscaArrRecs [] res = res
+		| buscaArrRecs({name, ty=RecordTy lf}::t) res =
 			let	fun genrecs [] _ = []
 				| genrecs({name, escape, typ=NameTy s}::tail) n =
-					(name, ref(TTipo (s, ref ())), n)::genrecs tail (n+1)
+					(name, ref(TTipo (s, ref NONE)), n)::genrecs tail (n+1)
 				| genrecs _ _ = raise Fail "error interno 666+3"
-			in	buscaRecs t ((name, TRecord(genrecs lf 0, ref()))::res) end
-		| buscaRecs({name, ty=ArrayTy ty}::t) res = buscaRecs t ((name, TArray(ref(TTipo (ty,ref())), ref()))::res)
-		| buscaRecs(_::t) res = buscaRecs t res
-	in	buscaRecs lt [] end
+			in	buscaArrRecs t ((name, TRecord(genrecs lf 0, ref()))::res) end
+		| buscaArrRecs({name, ty=ArrayTy ty}::t) res = buscaArrRecs t ((name, TArray(ref(TTipo (ty,ref NONE)), ref()))::res)
+		| buscaArrRecs(_::t) res = buscaArrRecs t res
+	in	buscaArrRecs lt [] end
 fun genPares lt =
 	let
 		val lrecs = buscaArrRecords lt
@@ -86,12 +86,12 @@ fun procesa [] pares env _ = env: (string, Tipo) Tabla
 					| _ => env
 	in procesa t ps' env' recs end
 fun fijaNONE [] env = env
-| fijaNONE((name, TArray(ar as (ref(TTipo (s,ref()))), u))::t) env =
+| fijaNONE((name, TArray(ar as (ref(TTipo (s,ref NONE))), u))::t) env =
 	(case tabBusca(s, env) of
 	NONE => raise Fail "error interno 666+1"
 	| SOME ras => (ar := ras; fijaNONE t env))
 | fijaNONE((name, TRecord(lf, u))::t) env =
-	let	fun busNONE(s, ar as (ref(TTipo (t, ref()))), _) =
+	let	fun busNONE(s, ar as (ref(TTipo (t, ref NONE))), _) =
 			(ar := tabSaca(t, env) handle _ => raise noExiste)
 		| busNONE _ = ()
 		val _ = List.app busNONE lf
