@@ -37,6 +37,10 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
     formals=[TInt], result=TUnit, extern=true})
   ])
 
+fun zip [] _ = []
+| zip _ [] = []
+| zip (h::t) (k::l) = (h,k)::(zip t l)
+
 fun tipoReal (TTipo (s,_), (env : tenv)) : Tipo =
     (case tabBusca(s , env) of
          NONE => raise Fail "typeReal TType"
@@ -249,14 +253,55 @@ fun transExp(venv, tenv) =
 					else error("index is not integer", nl)
 			end
     and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
-      (venv, tenv, []) (*COMPLETAR*)
+      let val {exp = _, ty = typExp} = transExp (venv, tenv) init
+          val venv' = tabRInserta (name, Var {ty=typExp}, venv)
+      in (venv', tenv, []) end
     | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
-      (venv, tenv, []) (*COMPLETAR*)
+      let val {exp = _, ty = typExp} = transExp (venv, tenv) init
+          val tt = (case tabBusca (s, tenv) of
+                      SOME t => t
+                      | NONE => error(s^": undefined type", pos))
+          val _ = if (*tipoReal*) tiposIguales tt typExp then () else error("non-matching types", pos)
+          val venv' = tabRInserta (name, Var {ty=typExp}, venv)
+          in (venv', tenv, []) end
+    | trdec (venv,tenv) (FunctionDec []) =
+      (venv, tenv, [])
     | trdec (venv,tenv) (FunctionDec fs) =
-      (venv, tenv, []) (*COMPLETAR*)
-    | trdec (venv,tenv) (TypeDec ts) =
-      (venv, tenv, []) (*COMPLETAR*)
+      let val nl = #2 (List.hd fs)
+          fun reps [] = false
+          | reps ({name,...}::t) = if List.exists (fn {name = x,...} => x = name) t then true else reps t
+          fun FDecToFEntry {name, params, result, body} =
+            let val stringFormal = List.map #typ params
+                val formal = List.map (fn (NameTy s) => (case tabBusca (s, tenv) of
+                                                          SOME t => t
+                                                          |NONE => error(s^": undefined type", nl))
+                                      | _ => TUnit) stringFormal
+                val resType = case result of
+                    SOME t => (case tabBusca(t, tenv) of
+                                SOME tt => tt
+                                |NONE => error(t^": undefined type", nl))
+                    |NONE => TUnit
+            in Func {level = (), label = tigertemp.newlabel(), formals = formal, result = resType, extern = false} end
+          val fs' = List.map #1 fs
+          val _ = if reps fs' then error("repeated names in batch declaration", nl) else ()
+          val fEntrys = List.map FDecToFEntry fs'
+          val fNameEntry = zip (List.map #name fs') fEntrys
+          val venv' = List.foldl (fn (f,tab) => tabRInserta (#1 f, #2 f, tab)) venv fNameEntry
+          (* Incomplete *)
+      in (venv, tenv, []) end
+    | trdec (venv,tenv) (TypeDec []) =
+      (venv, tenv, [])
+    | trdec (venv, tenv) (TypeDec ts) =
+      let val nl = #2 (List.hd ts)
+          fun reps [] = false
+          | reps ({name,...}::t) = if List.exists (fn {name = x,...} => x = name) t then true else reps t
+          val ts' = map #1 ts
+          val _ = if reps ts' then error("repeated names in batch declaration", nl) else ()
+          val tenv' = (tigertopsort.fijaTipos ts' tenv) handle tigertopsort.Ciclo => error("Cycle", nl)
+      in (venv, tenv', []) end
   in trexp end
+
+
 fun transProg ex =
   let  val main =
         LetExp({decs=[FunctionDec[({name="_tigermain", params=[],

@@ -42,7 +42,8 @@ fun buscaArrRecords lt =
 					(name, ref(TTipo (s, ref NONE)), n)::genrecs tail (n+1)
 				| genrecs _ _ = raise Fail "error interno 666+3"
 			in	buscaArrRecs t ((name, TRecord(genrecs lf 0, ref()))::res) end
-		| buscaArrRecs({name, ty=ArrayTy ty}::t) res = buscaArrRecs t ((name, TArray(ref(TTipo (ty,ref NONE)), ref()))::res)
+		| buscaArrRecs({name, ty=ArrayTy ty}::t) res =
+				buscaArrRecs t ((name, TArray(ref(TTipo (ty,ref NONE)), ref()))::res)
 		| buscaArrRecs(_::t) res = buscaArrRecs t res
 	in	buscaArrRecs lt [] end
 fun genPares lt =
@@ -51,7 +52,16 @@ fun genPares lt =
 		fun genP [] res = res
 		| genP ({name, ty=NameTy s'}::t) res = (print("NameTy "^s'^"\n"); genP t ((s', name)::res)   )
 		| genP ({name, ty=ArrayTy s'}::t) res = genP t ((s', name)::res)
-		| genP ({name, ty=RecordTy lf}::t) res = genP t res
+		| genP ({name, ty=RecordTy lf}::t) res =
+				let 	fun 	recorre({typ = NameTy x, ...} :: t) =
+												(case List.find ((op= rs x) o #1) lrecs of
+											 	SOME _ => recorre t
+												|NONE => x :: recorre t)
+										|recorre(_::t) = recorre t
+										|recorre [] = []
+					 		val res' = recorre lf
+					 		val res'' = List.map (fn x => (x, name)) res'
+				in genP t (res''@res) end
 	in	genP lt [] end
 fun procesa [] pares env _ = env: (string, Tipo) Tabla
 | procesa (sorted as (h::t)) (pares:{name:symbol, ty:ty} list) env recs =
