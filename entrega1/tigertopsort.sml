@@ -39,13 +39,14 @@ fun buscaArrRecords lt =
 		| buscaArrRecs({name, ty=RecordTy lf}::t) res =
 			let	fun genrecs [] _ = []
 				| genrecs({name, escape, typ=NameTy s}::tail) n =
-					(name, ref(TTipo (s, ref NONE)), n)::genrecs tail (n+1)
-				| genrecs _ _ = raise Fail "error interno 666+3"
+					(name, TTipo (s, ref NONE), n)::genrecs tail (n+1)
+				| genrecs _ _ = raise Fail "shouldn't happen (buscaArrRecs)"
 			in	buscaArrRecs t ((name, TRecord(genrecs lf 0, ref()))::res) end
 		| buscaArrRecs({name, ty=ArrayTy ty}::t) res =
-				buscaArrRecs t ((name, TArray(ref(TTipo (ty,ref NONE)), ref()))::res)
+				buscaArrRecs t ((name, TArray ((TTipo (ty, ref NONE)), ref()))::res)
 		| buscaArrRecs(_::t) res = buscaArrRecs t res
 	in	buscaArrRecs lt [] end
+
 fun genPares lt =
 	let
 		val lrecs = buscaArrRecords lt
@@ -63,6 +64,7 @@ fun genPares lt =
 					 		val res'' = List.map (fn x => (x, name)) res'
 				in genP t (res''@res) end
 	in	genP lt [] end
+
 fun procesa [] pares env _ = env: (string, Tipo) Tabla
 | procesa (sorted as (h::t)) (pares:{name:symbol, ty:ty} list) env recs =
 	let
@@ -77,7 +79,7 @@ fun procesa [] pares env _ = env: (string, Tipo) Tabla
 						SOME (n, tr) =>
 								(tabRInserta(h, tr, env);
 								SOME tr) (* OJOOOOOOOOOOOOOOOO *)
-						| _ => raise Fail (h^" **no existe!!!")
+						| _ => raise Fail (h^" doesn't exist")
 		val env' = case ttopt of
 					SOME tt =>
 						List.foldr
@@ -85,28 +87,32 @@ fun procesa [] pares env _ = env: (string, Tipo) Tabla
 							| ({name, ty=ArrayTy s}, env') =>
 								let val (k, v) =
 										case List.find((name ls op=) o #1) recs of
-										SOME x => x | _ => raise Fail "error 666+45"
+										SOME x => x | _ => raise Fail "shouldn't happen (1) (procesa)"
 								in	tabRInserta(k, v , env') end
 							| ({name, ty=RecordTy s}, env') =>
 								let val (k, v) =
 										case List.find((name ls op=) o #1) recs of
-										SOME x => x | _ => raise Fail "error 666+46"
+										SOME x => x | _ => raise Fail "shouldn't happen (2) (procesa)"
 								in	tabRInserta(k, v , env') end)
 					 		env ps
 					| _ => env
 	in procesa t ps' env' recs end
+
 fun fijaNONE [] env = env
-| fijaNONE((name, TArray(ar as (ref(TTipo (s,ref NONE))), u))::t) env =
+| fijaNONE ((name, TArray (TTipo (s, refi as ref NONE), u))::ts) env =
 	(case tabBusca(s, env) of
-	NONE => raise Fail "error interno 666+1"
-	| SOME ras => (ar := ras; fijaNONE t env))
-| fijaNONE((name, TRecord(lf, u))::t) env =
-	let	fun busNONE(s, ar as (ref(TTipo (t, ref NONE))), _) =
-			(ar := tabSaca(t, env) handle _ => raise noExiste)
-		| busNONE _ = ()
-		val _ = List.app busNONE lf
-	in	fijaNONE t env end
-| fijaNONE(_::t) env = fijaNONE t env
+		SOME (r as (TRecord _)) => (refi := SOME r; fijaNONE ts env)
+		| _ => raise Fail "shouldn't happen (fijaNONE)")
+| fijaNONE((name, TRecord(lf, u))::ts) env =
+	let	fun busNONE (s, TTipo (t, refi as ref NONE), _) =
+			(case tabBusca(t, env) of
+				SOME r => (refi := SOME r)
+				|NONE  => raise Fail "shouldn't happen (busNONE)")
+			| busNONE _ = ()
+			val _ = List.app busNONE lf
+	in	fijaNONE ts env end
+| fijaNONE(_::ts) env = fijaNONE ts env
+
 fun agregarecs env [] = env
 | agregarecs env ((k, v)::t) =
 	agregarecs (tabRInserta(k, v, env)) t
@@ -118,6 +124,6 @@ fun fijaTipos batch env =
 		val env' = procesa orden batch env recs
 		val env'' = agregarecs env' recs
 		val env''' = fijaNONE (tabAList env'') env''
-val _ = tigermuestratipos.printTTipos(tabAList env'')
+		val _ = tigermuestratipos.printTTipos(tabAList env'')
 	in	env''' end
 end

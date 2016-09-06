@@ -1,4 +1,4 @@
-structure tigerabs = 
+structure tigerabs =
 struct
 
 type symbol = string
