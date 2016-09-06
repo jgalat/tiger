@@ -282,13 +282,22 @@ fun transExp(venv, tenv) =
                                 |NONE => error(t^": undefined type", nl))
                     |NONE => TUnit
             in Func {level = (), label = tigertemp.newlabel(), formals = formal, result = resType, extern = false} end
+
           val fs' = List.map #1 fs
           val _ = if reps fs' then error("repeated names in batch declaration", nl) else ()
-          val fEntrys = List.map FDecToFEntry fs'
-          val fNameEntry = zip (List.map #name fs') fEntrys
+          val fEntries = List.map FDecToFEntry fs'
+          val fNameEntry = zip (List.map #name fs') fEntries
           val venv' = List.foldl (fn (f,tab) => tabRInserta (#1 f, #2 f, tab)) venv fNameEntry
-          (* Incomplete *)
-      in (venv, tenv, []) end
+          val bnrt = zip (List.map #body fs') (List.map (fn Func x => #result x
+                                                            | _ => error("shouldn't happen (3)", nl)) fEntries)
+          fun trexpBodyNCompare (body, result) =
+            let val {exp = _, ty = typBody} = transExp (venv', tenv) body
+            in if tiposIguales (tipoReal (typBody, tenv)) (tipoReal (result, tenv))
+                then ()
+                else error("function body type doesn't match result type", nl)
+            end
+          val _ = List.map trexpBodyNCompare bnrt
+      in (venv', tenv, []) end
     | trdec (venv,tenv) (TypeDec []) =
       (venv, tenv, [])
     | trdec (venv, tenv) (TypeDec ts) =
