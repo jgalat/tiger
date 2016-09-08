@@ -237,6 +237,11 @@ fun ppenve pps tigersres.VIntro = add_string pps "read only Int"
                                             List.app(fn(t) => (pptype pps t; add_string pps "*" ; add_break pps (0,0))) formals;
                                             add_string pps " -> " ; pptype pps result)
 
+fun ppTyp t =
+  (pptype ppstrm t;
+  flush_ppstream ppstrm;
+  TextIO.output(TextIO.stdOut, "\n"))
+
 fun ppEnv e =
   (ppenve ppstrm e;
   flush_ppstream ppstrm;

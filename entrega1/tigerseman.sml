@@ -70,8 +70,9 @@ fun transExp(venv, tenv) =
                    |aux [] _ r  = error("too many arguments", nl)
                    |aux _ [] r  = error("few arguments", nl)
                    |aux (x::xs) (y::ys) r = let val {exp = expY, ty = tY} = trexp y
-                                                val _ = tiposIguales x tY
-                                                        handle _ => error("incorrect types", nl)
+                                                val _ = if tiposIguales x tY
+                                                        then ()
+                                                        else error("incorrect types", nl)
                                             in aux xs ys r@[{exp = expY, ty = tY}]
                                             end
                 val leArgs  = aux tArgs args []
@@ -85,7 +86,8 @@ fun transExp(venv, tenv) =
         val {exp=_, ty=tyl} = trexp left
         val {exp=_, ty=tyr} = trexp right
       in
-        if tiposIguales tyl tyr andalso not (tiposIguales tyl TNil andalso tiposIguales tyr TNil) andalso not(tiposIguales tyl TUnit) then {exp=(), ty=TInt}
+        if tiposIguales tyl tyr andalso not(tyl=TNil andalso tyr=TNil) andalso not(tiposIguales tyl TUnit)
+          then {exp=(), ty=TInt}
           else error("incomparable types", nl)
       end
     | trexp(OpExp({left, oper=NeqOp, right}, nl)) =
@@ -93,7 +95,8 @@ fun transExp(venv, tenv) =
         val {exp=_, ty=tyl} = trexp left
         val {exp=_, ty=tyr} = trexp right
       in
-        if tiposIguales tyl tyr andalso not (tiposIguales tyl TNil andalso tiposIguales tyr TNil) andalso not(tiposIguales tyl TUnit) then {exp=(), ty=TInt}
+        if tiposIguales tyl tyr andalso not(tyl=TNil andalso tyr=TNil) andalso not(tiposIguales tyl TUnit)
+          then {exp=(), ty=TInt}
           else error("incomparable types", nl)
       end
     | trexp(OpExp({left, oper, right}, nl)) =
@@ -192,8 +195,8 @@ fun transExp(venv, tenv) =
                 val {exp = _, ty = typLo} = trexp lo
                 val _ = if tiposIguales typLo TInt andalso tiposIguales typHi TInt then () else error("boundaries not Int", nl)
                 val venv' = fromTab venv
-                val _ = tabInserta (var, VIntro, venv')
-                val {exp = _, ty = typBody} = transExp (venv', tenv) body
+                val venv'' = tabInserta (var, VIntro, venv')
+                val {exp = _, ty = typBody} = transExp (venv'', tenv) body
             in
                 if tiposIguales typBody TUnit then {exp = (), ty = TUnit} else error("incorrect Type", nl)
             end
@@ -225,7 +228,7 @@ fun transExp(venv, tenv) =
       (case tabBusca(s, venv) of
             NONE        => error(s^": undefined variable", nl)
 					| SOME VIntro => {exp = (), ty = TInt}
-					| SOME (Var {ty}) => {exp = () , ty = ty}
+					| SOME (Var {ty=t}) => {exp = () , ty = t}
 					| SOME _      => error(s^": is a function, not a variable", nl))
 		| trvar(FieldVar(v, s), nl) =
       let val {exp = _, ty = tyv} = trvar (v, nl)
@@ -248,6 +251,7 @@ fun transExp(venv, tenv) =
 			end
     and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
       let val {exp = _, ty = typExp} = transExp (venv, tenv) init
+          val _ = if typExp=TNil then error("variable with no explicit type is type nil", pos) else ()
           val venv' = tabRInserta (name, Var {ty=typExp}, venv)
       in (venv', tenv, []) end
     | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
@@ -256,12 +260,13 @@ fun transExp(venv, tenv) =
                       SOME t => t
                       | NONE => error(s^": undefined type", pos))
           val _ = if tiposIguales tt typExp then () else error("non-matching types", pos)
-          val venv' = tabRInserta (name, Var {ty=typExp}, venv)
+          val venv' = tabRInserta (name, Var {ty = tt}, venv)
           in (venv', tenv, []) end
     | trdec (venv,tenv) (FunctionDec []) =
       (venv, tenv, [])
     | trdec (venv,tenv) (FunctionDec fs) =
       let val nl = #2 (List.hd fs)
+
           fun reps [] = false
           | reps ({name,...}::t) = if List.exists (fn {name = x,...} => x = name) t then true else reps t
           fun FDecToFEntry {name, params, result, body} =

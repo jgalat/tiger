@@ -43,7 +43,7 @@ fun buscaArrRecords lt =
 				| genrecs _ _ = raise Fail "shouldn't happen (buscaArrRecs)"
 			in	buscaArrRecs t ((name, TRecord(genrecs lf 0, ref()))::res) end
 		| buscaArrRecs({name, ty=ArrayTy ty}::t) res =
-				buscaArrRecs t ((name, TArray ((TTipo (ty, ref NONE)), ref()))::res)
+				buscaArrRecs t ((name,  TArray (TTipo (ty, ref NONE), ref())) :: res)
 		| buscaArrRecs(_::t) res = buscaArrRecs t res
 	in	buscaArrRecs lt [] end
 
@@ -101,13 +101,13 @@ fun procesa [] pares env _ = env: (string, Tipo) Tabla
 fun fijaNONE [] env = env
 | fijaNONE ((name, TArray (TTipo (s, refi as ref NONE), u))::ts) env =
 	(case tabBusca(s, env) of
-		SOME (r as (TRecord _)) => (refi := SOME r; fijaNONE ts env)
-		| _ => raise Fail "shouldn't happen (fijaNONE)")
+		SOME r => (refi := SOME r; fijaNONE ts env)
+		| _ => raise Fail "shouldn't happen (fijaNONE) (1)")
 | fijaNONE((name, TRecord(lf, u))::ts) env =
 	let	fun busNONE (s, TTipo (t, refi as ref NONE), _) =
 			(case tabBusca(t, env) of
 				SOME r => (refi := SOME r)
-				|NONE  => raise Fail "shouldn't happen (busNONE)")
+				|NONE  => raise Fail "shouldn't happen (busNONE) (2)")
 			| busNONE _ = ()
 			val _ = List.app busNONE lf
 	in	fijaNONE ts env end
@@ -124,6 +124,6 @@ fun fijaTipos batch env =
 		val env' = procesa orden batch env recs
 		val env'' = agregarecs env' recs
 		val env''' = fijaNONE (tabAList env'') env''
-		val _ = tigermuestratipos.printTTipos(tabAList env'')
+		(* val _ = tigermuestratipos.printTTipos(tabAList env'') *)
 	in	env''' end
 end
