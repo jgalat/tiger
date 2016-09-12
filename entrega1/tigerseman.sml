@@ -38,8 +38,8 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
   ])
 
 fun zip [] _ = []
-| zip _ [] = []
-| zip (h::t) (k::l) = (h,k)::(zip t l)
+  | zip _ [] = []
+  | zip (h::t) (k::l) = (h,k)::(zip t l)
 
 fun tipoReal (TTipo (s, ref (SOME t))) = t
   | tipoReal (TTipo (s, ref NONE)) = raise Fail (s^" is NONE!")
@@ -61,26 +61,26 @@ fun transExp(venv, tenv) =
     | trexp(IntExp(i, _)) = {exp=(), ty=TInt}
     | trexp(StringExp(s, _)) = {exp=(), ty=TString}
     | trexp(CallExp({func, args}, nl)) =
-            let
-                val (tArgs, ext, tRet, lab, lvl) = case tabBusca (func, venv) of
-                     SOME (Func {formals, extern, result, label, level})  => (formals, extern, result, label, level)
-                    |SOME _ => error(func^": is not a function", nl)
-                    |NONE   => error(func^": not defined", nl)
-                fun aux [] [] r = r
-                   |aux [] _ r  = error("too many arguments", nl)
-                   |aux _ [] r  = error("few arguments", nl)
-                   |aux (x::xs) (y::ys) r = let val {exp = expY, ty = tY} = trexp y
-                                                val _ = if tiposIguales x tY
-                                                        then ()
-                                                        else error("incorrect types", nl)
-                                            in aux xs ys r@[{exp = expY, ty = tY}]
-                                            end
-                val leArgs  = aux tArgs args []
-                val leArgs' = map #exp leArgs
-                val pf      = tRet = TUnit
-            in
-                {exp = (), ty = tRet}
-            end
+        let
+            val (tArgs, ext, tRet, lab, lvl) = case tabBusca (func, venv) of
+                 SOME (Func {formals, extern, result, label, level})  => (formals, extern, result, label, level)
+                |SOME _ => error(func^": is not a function", nl)
+                |NONE   => error(func^": not defined", nl)
+            fun aux [] [] r = r
+               |aux [] _ r  = error("too many arguments", nl)
+               |aux _ [] r  = error("few arguments", nl)
+               |aux (x::xs) (y::ys) r = let val {exp = expY, ty = tY} = trexp y
+                                            val _ = if tiposIguales x tY
+                                                    then ()
+                                                    else error("incorrect types", nl)
+                                        in aux xs ys r@[{exp = expY, ty = tY}]
+                                        end
+            val leArgs  = aux tArgs args []
+            val leArgs' = map #exp leArgs
+            val pf      = tRet = TUnit
+        in
+            {exp = (), ty = tRet}
+        end
     | trexp(OpExp({left, oper=EqOp, right}, nl)) =
       let
         val {exp=_, ty=tyl} = trexp left
@@ -114,7 +114,7 @@ fun transExp(venv, tenv) =
             | LeOp => if tiposIguales tyl TInt orelse tiposIguales tyl TString then {exp=(),ty=TInt} else error("Type error", nl)
             | GtOp => if tiposIguales tyl TInt orelse tiposIguales tyl TString then {exp=(),ty=TInt} else error("Type error", nl)
             | GeOp => if tiposIguales tyl TInt orelse tiposIguales tyl TString then {exp=(),ty=TInt} else error("Type error", nl)
-            | _ => raise Fail "shouldn't happen! (3)"
+            | _ => error("shouldn't happen! (3)", nl)
         else error("Type error", nl)
       end
     | trexp(RecordExp({fields, typ}, nl)) =
@@ -159,13 +159,13 @@ fun transExp(venv, tenv) =
               else error (s^": Types do not match", nl)
         end
     | trexp(AssignExp({var, exp}, nl)) =
-                let val {exp = _, ty = typVar} = trvar (var, nl)
-                    val {exp = _, ty = typExp} = trexp exp
-                in
-                    if tiposIguales typVar typExp
-                        then {exp = (), ty = TUnit}
-                        else error("Types do not match", nl)
-                end
+        let val {exp = _, ty = typVar} = trvar (var, nl)
+            val {exp = _, ty = typExp} = trexp exp
+        in
+            if tiposIguales typVar typExp
+                then {exp = (), ty = TUnit}
+                else error("Types do not match", nl)
+        end
     | trexp(IfExp({test, then', else'=SOME else'}, nl)) =
       let val {exp=testexp, ty=tytest} = trexp test
           val {exp=thenexp, ty=tythen} = trexp then'
@@ -191,15 +191,15 @@ fun transExp(venv, tenv) =
         else error("body should be unit type", nl)
       end
     | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
-            let val {exp = _, ty = typHi} = trexp hi
-                val {exp = _, ty = typLo} = trexp lo
-                val _ = if tiposIguales typLo TInt andalso tiposIguales typHi TInt then () else error("boundaries not Int", nl)
-                val venv' = fromTab venv
-                val venv'' = tabInserta (var, VIntro, venv')
-                val {exp = _, ty = typBody} = transExp (venv'', tenv) body
-            in
-                if tiposIguales typBody TUnit then {exp = (), ty = TUnit} else error("incorrect Type", nl)
-            end
+      let val {exp = _, ty = typHi} = trexp hi
+          val {exp = _, ty = typLo} = trexp lo
+          val _ = if tiposIguales typLo TInt andalso tiposIguales typHi TInt then () else error("boundaries not Int", nl)
+          val venv' = fromTab venv
+          val venv'' = tabInserta (var, VIntro, venv')
+          val {exp = _, ty = typBody} = transExp (venv'', tenv) body
+      in
+          if tiposIguales typBody TUnit then {exp = (), ty = TUnit} else error("incorrect Type", nl)
+      end
     | trexp(LetExp({decs, body}, _)) =
       let
         val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
