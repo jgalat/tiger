@@ -64,7 +64,7 @@ fun transExp(venv, tenv) =
 		fun trexp(VarExp v) = trvar(v)
 		| trexp(UnitExp _) = {exp=unitExp(), ty=TUnit}
 		| trexp(NilExp _)= {exp=nilExp(), ty=TNil}
-		| trexp(IntExp(i, _)) = {exp=intExp i, ty=TInt}
+		| trexp(IntExp(i, _)) = {exp=intExp(i), ty=TInt}
 		| trexp(StringExp(s, _)) = {exp=stringExp(s), ty=TString}
 		| trexp(CallExp({func, args}, nl)) =
 				let
@@ -85,7 +85,7 @@ fun transExp(venv, tenv) =
 						val leArgs' = map #exp leArgs
 						val pf      = tRet = TUnit
 				in
-						{exp = nilExp(), ty = tRet}
+						{exp = callExp(lab, ext, pf, lvl, leArgs'), ty = tRet}
 				end
 		| trexp(OpExp({left, oper=EqOp, right}, nl)) =
 			let
@@ -101,7 +101,7 @@ fun transExp(venv, tenv) =
 				val {exp=expl, ty=tyl} = trexp left
 				val {exp=expr, ty=tyr} = trexp right
 			in
-				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then
+				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso not(tiposIguales tyl TUnit) then
 					{exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=NeqOp,right=expr} else binOpIntRelExp {left=expl,oper=NeqOp,right=expr}, ty=TInt}
 					else error("incomparable types", nl)
 			end
@@ -230,8 +230,7 @@ fun transExp(venv, tenv) =
 			in
 				{exp=seqExp(expdecs@[expbody]), ty=tybody}
 			end
-		| trexp(BreakExp nl) =
-			{exp=nilExp(), ty=TUnit} (*COMPLETAR*)
+		| trexp(BreakExp nl) = {exp=breakExp(), ty=TUnit}
 		| trexp(ArrayExp({typ, size, init}, nl)) = (*TODO*)
 		let val typ = (case tabBusca(typ, tenv) of
 											SOME (TArray (t, u)) => (t,u)

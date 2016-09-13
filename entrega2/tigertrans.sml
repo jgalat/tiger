@@ -7,7 +7,7 @@ open tigerabs
 
 exception breakexc
 exception divCero
-	
+
 type level = {parent:frame option , frame: frame, level: int}
 type access = tigerframe.access
 
@@ -91,12 +91,12 @@ fun nombreFrame frame = print(".globl " ^ tigerframe.name frame ^ "\n")
 local
 	val salidas: label option tigerpila.Pila = tigerpila.nuevaPila1 NONE
 in
-	val pushSalida = tigerpila.pushPila salidas
+	val pushSalida  = tigerpila.pushPila salidas
 	fun popSalida() = tigerpila.popPila salidas
 	fun topSalida() =
 		case tigerpila.topPila salidas of
-		SOME l => l
-		| NONE => raise Fail "break incorrecto!"			
+			SOME l => l
+		| NONE => raise Fail "break outside a loop"
 end
 
 val datosGlobs = ref ([]: frag list)
@@ -136,14 +136,14 @@ fun unitExp() = Ex (CONST 0)
 
 fun nilExp() = Ex (CONST 0)
 
-fun intExp i = Ex (CONST i)
+fun intExp(i) = Ex (CONST i)
 
 fun simpleVar(acc, nivel) =
 	Ex (CONST 0) (*COMPLETAR*)
 
 fun varDec(acc) = simpleVar(acc, getActualLev())
 
-fun fieldVar(var, field) = 
+fun fieldVar(var, field) =
 	Ex (CONST 0) (*COMPLETAR*)
 
 fun subscriptVar(arr, ind) =
@@ -171,14 +171,39 @@ in
 	Ex (externalCall("allocArray", [s, i]))
 end
 
-fun callExp (name,external,isproc,lev:level,ls) = 
-	Ex (CONST 0) (*COMPLETAR*)
+fun callExp (name,external,isproc,lev:level,ls) =
+	let val actualLev = getActualLev()
+			fun menAMay 0 = TEMP name
+				| menAMay n = MEM (BINOP (PLUS, menAMay (n-1), CONST fpPrevLev))
+			val fpLev = if (#level lev) = actualLev
+										then MEM (BINOP (PLUS, TEMP fp, CONST fpPrevLev))
+										else if (#level lev) < actualLev
+													then menAMay (actualLev - (#level lev) + 1)
+													else TEMP fp
+			fun preparaArgs [] (rt,re) = (rt,re)
+			 	| preparaArgs (h::t) (rt,re) =
+						case h of
+							Ex (CONST s) => preparaArgs t ((CONST s)::rt, re)
+						|	Ex (NAME s) => preparaArgs t ((NAME s)::rt, re)
+						| Ex (TEMP s) => preparaArgs t ((TEMP s)::rt, re)
+						| _           => 	let val t' = newtemp()
+															in preparaArgs t ((TEMP t')::rt, (MOVE (TEMP t', unEx h))::re) end
+			val (ta, ls') = preparaArgs (List.rev ls) ([], [])
+			val ta' = if external then ta else (fpLev::ta)
+		in if isproc then Nx (seq (ls'@[EXP (CALL (NAME name, ta'))]))
+			 else let val tmp = newtemp()
+						in Ex (ESEQ (seq (ls'@[EXP (CALL (NAME name, ta')),
+																	MOVE (TEMP tmp, TEMP rv)]), TEMP tmp))
+						end
+		end
 
 fun letExp ([], body) = Ex (unEx body)
  |  letExp (inits, body) = Ex (ESEQ(seq inits,unEx body))
 
-fun breakExp() = 
-	Ex (CONST 0) (*COMPLETAR*)
+fun breakExp() =
+	let val ts = topSalida()
+	in Nx (JUMP (NAME ts, [ts]))
+	end
 
 fun seqExp ([]:exp list) = Nx (EXP(CONST 0))
 	| seqExp (exps:exp list) =
@@ -233,14 +258,44 @@ in
 	Nx (MOVE(v,vl))
 end
 
-fun binOpIntExp {left, oper, right} = 
-	Ex (CONST 0) (*COMPLETAR*)
+fun binOpIntExp {left, oper, right} =
+	let val l = unEx left
+			val r = unEx right
+	in case oper of
+			PlusOp => Ex (BINOP (PLUS, l, r))
+		|	MinusOp => Ex (BINOP (MINUS, l, r))
+		|	DivideOp => Ex (BINOP (DIV, l, r))
+		|	TimesOp => Ex (BINOP (MUL, l, r))
+		| _       => raise Fail "shouldn't happen (binOpIntExp)"
+	end
 
 fun binOpIntRelExp {left,oper,right} =
-	Ex (CONST 0) (*COMPLETAR*)
+	let val l = unEx left
+			val r = unEx right
+			fun subst(oper) = (fn (t,f) => CJUMP (oper, l, r, t, f))
+	in case oper of
+			EqOp => Cx (subst(EQ))
+		| NeqOp => Cx (subst(NE))
+		| LtOp => Cx (subst(LT))
+		| LeOp => Cx (subst(LE))
+		| GtOp => Cx (subst(GT))
+		| GeOp => Cx (subst(GE))
+		| _    => raise Fail "shouldn't happen (binOpIntRelExp)"
+	end
 
 fun binOpStrExp {left,oper,right} =
-	Ex (CONST 0) (*COMPLETAR*)
-
-
+	let val l = unEx left
+			val r = unEx right
+			fun subst(oper) = (fn (t,f) => CJUMP (oper, ESEQ (EXP (externalCall ("_stringCompare", [l,r])),
+																												TEMP rv),
+																						CONST 0, t, f))
+	in case oper of
+			EqOp  => Cx (subst(EQ))
+		| NeqOp => Cx (subst(NE))
+		| LtOp => Cx (subst(LT))
+		| LeOp => Cx (subst(LE))
+		| GtOp => Cx (subst(GT))
+		| GeOp => Cx (subst(GE))
+		| _     => raise Fail "shouldn't happen (binOpStrExp)"
+	end
 end
