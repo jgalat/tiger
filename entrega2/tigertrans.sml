@@ -138,9 +138,14 @@ fun nilExp() = Ex (CONST 0)
 
 fun intExp(i) = Ex (CONST i)
 
-fun simpleVar(acc, nivel) =
-	Ex (CONST 0) (*COMPLETAR*)
-
+fun simpleVar(acc, lvl) =
+	case acc of
+		InReg r => Ex (TEMP r)
+	| InFrame k => let fun aux 0 = TEMP fp
+											|  aux n = MEM (BINOP (PLUS, CONST fpPrevLev, aux (n-1)))
+										 val aLvl = getActualLev()
+								 in Ex (MEM (BINOP (PLUS, aux (aLvl - lvl), CONST k)))
+								 end
 fun varDec(acc) = simpleVar(acc, getActualLev())
 
 fun fieldVar(var, field) =
@@ -208,9 +213,9 @@ fun breakExp() =
 fun seqExp ([]:exp list) = Nx (EXP(CONST 0))
 	| seqExp (exps:exp list) =
 		let
-			fun unx [e] = []
+			fun unx [] 	= []
+			 	| unx [e] = []
 				| unx (s::ss) = (unNx s)::(unx ss)
-				| unx[] = []
 		in
 			case List.last exps of
 				Nx s =>
@@ -239,7 +244,38 @@ in
 end
 
 fun forExp {lo, hi, var, body} =
-	Ex (CONST 0) (*COMPLETAR*)
+	let val var' = unEx var
+			val (l1, l2, lsal) = (newlabel(), newlabel(), topSalida())
+	in
+	 	Nx (seq (case hi of
+							Ex (CONST h) => if h < valOf Int.maxInt
+															then [MOVE (var', unEx lo),
+																		JUMP (NAME l2, [l2]),
+																		LABEL l1,
+																		unNx body,
+																		MOVE (var', BINOP (PLUS, var', CONST 1)),
+																		LABEL l2,
+																		CJUMP (GT, var', CONST h, lsal, l1),
+																		LABEL lsal]
+															else [MOVE (var', unEx lo),
+																		LABEL l2,
+																		CJUMP (EQ, var', CONST h, lsal, l1),
+																		unNx body,
+																		LABEL l1,
+																		MOVE (var', BINOP (PLUS, var', CONST 1)),
+																		JUMP (NAME l2, [l2]),
+																		LABEL lsal]
+						 | _         => let val t = newtemp()
+						 								in [MOVE (var', unEx lo),
+																MOVE (TEMP t, unEx hi),
+																unNx body,
+																CJUMP (EQ, var', TEMP t, lsal, l1),
+																LABEL l1,
+																MOVE (var', BINOP (PLUS, var', CONST 1)),
+																JUMP (NAME l2, [l2]),
+																LABEL lsal]
+														end))
+  end
 
 fun ifThenExp{test, then'} =
 	Ex (CONST 0) (*COMPLETAR*)

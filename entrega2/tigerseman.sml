@@ -199,24 +199,30 @@ fun transExp(venv, tenv) =
 			end
 		| trexp(WhileExp({test, body}, nl)) =
 			let
+				val _ = preWhileForExp()
 				val {exp=etest, ty=ttest} = trexp test
 				val {exp=ebody, ty=tbody} = trexp body
+				val _ = postWhileForExp()
 			in
 				if tiposIguales ttest TInt andalso tiposIguales tbody TUnit then {exp=whileExp {test=etest, body=ebody, lev=topLevel()}, ty=TUnit}
 				else if not(tiposIguales ttest TInt) then error("type error in condition", nl)
 				else error("body should be unit type", nl)
 			end
-		| trexp(ForExp({var, escape, lo, hi, body}, nl)) = (* TODO *)
-			(*let val {exp = _, ty = typHi} = trexp hi
-					val {exp = _, ty = typLo} = trexp lo
+		| trexp(ForExp({var, escape, lo, hi, body}, nl)) =
+			let val {exp = expHi, ty = typHi} = trexp hi
+					val {exp = expLo, ty = typLo} = trexp lo
 					val _ = if tiposIguales typLo TInt andalso tiposIguales typHi TInt then () else error("boundaries not Int", nl)
+					val acc' = allocLocal (topLevel()) (!escape)
+					val lvl = getActualLev()
+					val _ = preWhileForExp()
 					val venv' = fromTab venv
-					val venv'' = tabInserta (var, VIntro {access ??, level = getActualLev()}, venv') (* <--- *)
-					val {exp = _, ty = typBody} = transExp (venv'', tenv) body
+					val venv'' = tabInserta (var, VIntro {access = acc', level = lvl}, venv')
+					val {exp = expBody, ty = typBody} = transExp (venv'', tenv) body
+					val ev' = simpleVar(acc', 0)
+					val _ = postWhileForExp()
 			in
-					if tiposIguales typBody TUnit then {exp = nilExp(), ty = TUnit} else error("incorrect Type", nl)
-			end *)
-			{exp = nilExp(), ty = TUnit}
+					if tiposIguales typBody TUnit then {exp = forExp{lo = expLo, hi = expHi, var = ev', body = expBody}, ty = TUnit} else error("incorrect Type", nl)
+			end
 		| trexp(LetExp({decs, body}, _)) =
 			let
 				fun aux (d, (v, t, exps1)) =
@@ -231,7 +237,7 @@ fun transExp(venv, tenv) =
 				{exp=seqExp(expdecs@[expbody]), ty=tybody}
 			end
 		| trexp(BreakExp nl) =
-			{exp=breakExp() handle _ => error("break outside of loop", nl), ty=TUnit} 
+			{exp=breakExp() handle _ => error("break outside of loop", nl), ty=TUnit}
 		| trexp(ArrayExp({typ, size, init}, nl)) = (*TODO*)
 		let val typ = (case tabBusca(typ, tenv) of
 											SOME (TArray (t, u)) => (t,u)
