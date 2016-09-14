@@ -230,7 +230,8 @@ fun transExp(venv, tenv) =
 			in
 				{exp=seqExp(expdecs@[expbody]), ty=tybody}
 			end
-		| trexp(BreakExp nl) = {exp=breakExp(), ty=TUnit}
+		| trexp(BreakExp nl) =
+			{exp=breakExp() handle _ => error("break outside of loop", nl), ty=TUnit} 
 		| trexp(ArrayExp({typ, size, init}, nl)) = (*TODO*)
 		let val typ = (case tabBusca(typ, tenv) of
 											SOME (TArray (t, u)) => (t,u)
