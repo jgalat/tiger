@@ -1,4 +1,4 @@
-local (* Sort topolo'gico *)
+local (* Sort topológico *)
 	fun cmp(x, y) = x=y
 	fun mem(x, []) = false
 	| mem(x, y::l) = cmp(x, y) orelse mem(x, l)
@@ -9,7 +9,7 @@ in
 	fun topsort graph =
 		let	fun sort([], path, visited) = visited
 			| sort(x::xs, path, visited) =
-				if mem(x, path) then raise Fail "ciclo!"
+				if mem(x, path) then raise Fail "cycle!"
 				else sort(xs, path,
 						if mem(x, visited) then visited
 						else x::sort(nexts(x, graph), x::path, visited))
