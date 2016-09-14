@@ -11,7 +11,7 @@ fun aHex n =
 	(Int.fmt StringCvt.HEX n)
 fun ctrl0 "\\n" = "\\x0a"
 | ctrl0 "\\t" = "\\x09"
-| ctrl0 _ = raise Fail "error interno 1 en lex!"
+| ctrl0 _ = raise Fail "internal error 1 (lex)!"
 fun ctrl1 s =
 	let	val c = ord(hd(tl(tl(explode s))))
 	in	aHex(c-ord(#"@")) end
@@ -79,8 +79,8 @@ rule Tok = parse "/*"	{ inc ncom; Com lexbuf }
 	| MN+				{ clav_id(getLexeme lexbuf) }
 	| L LDU*			{ ID(getLexeme lexbuf) }
 	| _					{ raise Fail("lex:["^getLexeme(lexbuf)^"]!") }
-and literal = parse eof	{ raise Fail "string sin terminar! " }
-	| `\n`				{ raise Fail "NL en string!" }
+and literal = parse eof	{ raise Fail "unfinished string! " }
+	| `\n`				{ raise Fail "NL in string!" }
 	| `"`				{ "" }
 	| "\\"[`"``\\`]		{ getLexeme(lexbuf)^literal(lexbuf) }
 	| "\\"[`n``t`]		{ ctrl0(getLexeme lexbuf)^literal(lexbuf) }
@@ -91,18 +91,18 @@ and literal = parse eof	{ raise Fail "string sin terminar! " }
 							let	val s = getLexeme lexbuf
 							in
 								if s > "\^_" then s^literal(lexbuf)
-								else raise Fail "caracter ilegal!"
+								else raise Fail "illegal char!"
 							end
 						}
 and literal1 =
-	parse eof			{ raise Fail "string incompleta!" }
+	parse eof			{ raise Fail "incomplete string!" }
 	| `\n`				{ inc num_linea; literal1 lexbuf }
 	| SPC+				{ literal1 lexbuf }
 	| "\\"				{ literal lexbuf }
-	| _ 				{ raise Fail "\\\\ malformada!" }
+	| _ 				{ raise Fail "\\\\ malformed!" }
 and Com = parse "*/"	{ (if dec ncom=0 then Tok else Com) lexbuf }
 	| "/*"				{ inc ncom; Com lexbuf }
-	| eof				{ raise Fail "coment incompleto!" }
+	| eof				{ raise Fail "incomplete comment!" }
 	| `\n`				{ inc num_linea; Com lexbuf }
 	| _					{ Com lexbuf }
 ;
