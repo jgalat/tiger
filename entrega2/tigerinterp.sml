@@ -76,7 +76,7 @@ struct
 		in
 			fun loadLabel lab = case tabBusca(lab, !tabLabels) of
 				SOME a => a
-				| NONE => raise Fail("Label no encontrado: "^lab^"\n")
+				| NONE => raise Fail("Label not found: "^lab^"\n")
 			fun storeLabel lab addr = tabLabels := tabInserta(lab, addr, !tabLabels)
 		end
 
@@ -106,16 +106,16 @@ struct
 		in
 			mem
 		end
-		| initArray _ = raise Fail("No debería pasar (initArray)")
+		| initArray _ = raise Fail("Shouldn't happen (initArray)")
 
 		fun checkIndexArray(arr::idx::rest) =
 		let
 			val siz = loadMem (arr+1)
-			val _ = if (idx>=siz orelse idx<0) then raise Fail("Índice fuara de rango\n") else ()
+			val _ = if (idx>=siz orelse idx<0) then raise Fail("Out of range index\n") else ()
 		in
 			0
 		end
-		| checkIndexArray _ = raise Fail("No debería pasar (checkIndexArray)")
+		| checkIndexArray _ = raise Fail("Shouldn't happen (checkIndexArray)")
 		
 		fun allocRecord(ctos::vals) =
 		let
@@ -126,7 +126,7 @@ struct
 		in
 			mem
 		end
-		| allocRecord _ = raise Fail("No debería pasar (allocRecord)")
+		| allocRecord _ = raise Fail("Shouldn't happen (allocRecord)")
 		
 		fun checkNil(r::rest) =
 		let
@@ -134,7 +134,7 @@ struct
 		in
 			0
 		end
-		| checkNil _ = raise Fail("No debería pasar (checkNil)")
+		| checkNil _ = raise Fail("Shouldn't happen (checkNil)")
 
 		fun stringCompare(strPtr1::strPtr2::rest) =
 		let
@@ -147,7 +147,7 @@ struct
 				| EQUAL => 0
 				| GREATER => 1
 		end
-		| stringCompare _ = raise Fail("No debería pasar (stringCompare)")
+		| stringCompare _ = raise Fail("Shouldn't happen (stringCompare)")
 
 		fun printFun(strPtr::rest) =
 		let
@@ -156,7 +156,7 @@ struct
 		in
 			0
 		end
-		| printFun _ = raise Fail("No debería pasar (printFun)")
+		| printFun _ = raise Fail("Shouldn't happen (printFun)")
 
 		fun flushFun(args) = 0
 
@@ -167,7 +167,7 @@ struct
 		in
 			ord(ch)
 		end
-		| ordFun _ = raise Fail("No debería pasar (ordFun)")
+		| ordFun _ = raise Fail("Shouldn't happen (ordFun)")
 
 		fun chrFun(i::rest) =
 		let
@@ -176,7 +176,7 @@ struct
 		in
 			storeString str
 		end
-		| chrFun _ = raise Fail("No debería pasar (chrFun)")
+		| chrFun _ = raise Fail("Shouldn't happen (chrFun)")
 
 		fun sizeFun(strPtr::rest) =
 		let
@@ -184,7 +184,7 @@ struct
 		in
 			String.size(str)
 		end
-		| sizeFun _ = raise Fail("No debería pasar (sizeFun)")
+		| sizeFun _ = raise Fail("Shouldn't happen (sizeFun)")
 
 		fun substringFun(strPtr::first::n::rest) =
 		let
@@ -193,7 +193,7 @@ struct
 		in
 			storeString substr
 		end
-		| substringFun _ = raise Fail("No debería pasar (substringFun)")
+		| substringFun _ = raise Fail("Shouldn't happen (substringFun)")
 
 		fun concatFun(strPtr1::strPtr2::rest) =
 		let
@@ -203,11 +203,11 @@ struct
 		in
 			storeString res
 		end
-		| concatFun _ = raise Fail("No debería pasar (concatFun)")
+		| concatFun _ = raise Fail("Shouldn't happen (concatFun)")
 
 		fun notFun(v::rest) =
 			if (v=0) then 1 else 0
-		| notFun _ = raise Fail("No debería pasar (notFun)")
+		| notFun _ = raise Fail("Shouldn't happen (notFun)")
 
 		fun getstrFun(args) = 
 		let
@@ -264,7 +264,7 @@ struct
 			let
 				val lab = case f of
 					NAME l => l
-					| _ => raise Fail("CALL a otra cosa (no implemetado)\n")
+					| _ => raise Fail("CALL other stuff (not implemented)\n")
 				val eargs = List.map evalExp args
 				(*Si lab es de biblioteca, usar la función de la tabla*)
 				val rv = case tabBusca(lab, tabLib) of
@@ -273,17 +273,17 @@ struct
 			in
 				(storeTemp tigerframe.rv rv; rv)
 			end
-		| evalExp(ESEQ(s, e)) = raise Fail("No canonizado\n")
+		| evalExp(ESEQ(s, e)) = raise Fail("Not canonized\n")
 		(* ejecuta un comando, devuelve NONE si no salta, SOME l si salta al label l *)
 		and evalStm(MOVE(TEMP t, e)) = (storeTemp t (evalExp(e)); NONE)
 		| evalStm(MOVE(MEM(e1), e2)) = (storeMem (evalExp(e1)) (evalExp(e2)); NONE)
-		| evalStm(MOVE(_, _)) = raise Fail("MOVE a otra cosa\n")
+		| evalStm(MOVE(_, _)) = raise Fail("invalid MOVE\n")
 		| evalStm(EXP e) = (evalExp(e); NONE)
 		| evalStm(JUMP(e, ls)) =
 			let
 				val lab = case e of
 					NAME l => l
-					| _ => raise Fail("JUMP a otra cosa\n")
+					| _ => raise Fail("invalid JUMP\n")
 			in
 				SOME lab
 			end
@@ -305,17 +305,17 @@ struct
 			in
 				if (b) then SOME lt else SOME lf
 		end
-		| evalStm(SEQ(_,_)) = raise Fail("No canonizado\n")
+		| evalStm(SEQ(_,_)) = raise Fail("Not canonized\n")
 		| evalStm(LABEL _) = NONE
 		(* Ejecuta una llamada a función *)
 		and evalFun(f, args) =
 			let
 				(* Encontrar la función*)
 				val ffrac = List.filter (fn (body, frame) => tigerframe.name(frame)=f) funfracs
-				val _ = if (List.length(ffrac)<>1) then raise Fail ("No se encuentra la función, o repetida: "^f^"\n") else ()
+				val _ = if (List.length(ffrac)<>1) then raise Fail ("Either can't find function, or it's repeated: "^f^"\n") else ()
 				val [(body, frame)] = ffrac
 				(* Mostrar qué se está haciendo, si showdebug *)
-				val _ = if showdebug then (print((tigerframe.name frame)^":\n");List.app (print o tigerit.tree) body; print("Argumentos: "); List.app (fn n => (print(Int.toString(n)); print("  "))) args; print("\n")) else ()
+				val _ = if showdebug then (print((tigerframe.name frame)^":\n");List.app (print o tigerit.tree) body; print("Arguments: "); List.app (fn n => (print(Int.toString(n)); print("  "))) args; print("\n")) else ()
 
 				fun execute l =
 				let
@@ -327,7 +327,7 @@ struct
 							case evalStm x of
 								SOME lab =>
 									let
-										fun f [] = raise Fail("No está el label en la función\n")
+										fun f [] = raise Fail("Label is not in function\n")
 										| f (x::xs) =
 											(case x of
 												LABEL y => if (y=lab) then (x::xs) else f xs
@@ -362,5 +362,5 @@ struct
 			in
 				rv
 			end
-	in (print("Comienzo de ejecución...\n"); evalFun("_tigermain", []); print("Fin de ejecución.\n")) end
+	in (print("Executing...\n"); evalFun("_tigermain", []); print("Execution done.\n")) end
 end

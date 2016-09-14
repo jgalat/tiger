@@ -143,16 +143,16 @@ fun trace(table,b as (LABEL lab :: _),rest) =
 						@ getnext(table,rest)
 					end)
 		| (most, JUMP _) => b @ getnext(table,rest)
-		| _ => raise Fail "debiera ser imposible!(1)"
+		| _ => raise Fail "shouldn't happen!(1)"
 	end
-| trace _ = raise Fail "debiera ser imposible!(2)"
+| trace _ = raise Fail "shouldn't happen!(2)"
 
 and getnext(table,(b as (LABEL lab::_))::rest) = 
 	(case tabBusca(lab, table) of
 	SOME(_::_) => trace(table,b,rest)
 	| _ => getnext(table,rest))
 | getnext(table,nil) = nil
-| getnext _ = raise Fail "no puede pasar!"
+| getnext _ = raise Fail "can't happen!"
 
 fun traceSchedule(blocks,done) = 
        getnext(foldr enterblock (tabNueva()) blocks, blocks)
