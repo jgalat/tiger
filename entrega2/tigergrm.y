@@ -4,7 +4,7 @@ open tigerabs
 fun P() = !tigernlin.num_linea
 
 fun nombre(SimpleVar s) = s
-| nombre _ = raise Fail "Imposible que no sea SimpleVar!"
+| nombre _ = raise Fail "Always must be SimpleVar!"
 
 fun fundeLFunTipos(TypeDec[dt], (TypeDec(hdt))::t) =
 	TypeDec(dt::hdt)::t
