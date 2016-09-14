@@ -5,7 +5,7 @@ open tigertips
 fun buscaRecordArray unique lenv =
   case List.find(fn(_, TArray(_, u)) => u=unique | (_, TRecord(_, u)) => u=unique | _ => false) lenv of
   SOME (k, v) => k
-  | NONE => raise Fail "error interno76543"
+  | NONE => raise Fail "internal error 76543"
 fun printTipo(n, t, lenv) =
   let
       fun prnt TUnit = print "TUnit\n"
