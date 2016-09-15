@@ -139,11 +139,12 @@ fun transExp(venv, tenv) =
 				(* Buscar el tipo *)
 				val (tyr, cs) = case tabBusca(typ, tenv) of
 					SOME t => (case tipoReal t of
-						TRecord (cs, u) => (TRecord (cs, u), cs)
-						| _ => error(typ^" isn't a record type", nl))
+											TRecord (cs, u) => (TRecord (cs, u), cs)
+											| _ => error(typ^" isn't a record type", nl))
 					| NONE => error("Type \""^typ^"\" doesn't exist", nl)
 
 				(* Verificar que cada campo esté en orden y tenga una expresión del tipo que corresponde *)
+				(* Possible TODO: unordered fields *)
 				fun verificar _ [] [] = []
 				  | verificar _ (c::cs) [] = error("missing fields", nl)
 				  | verificar _ [] (c::cs) = error("spare fields", nl)
@@ -153,7 +154,7 @@ fun transExp(venv, tenv) =
 							 else error("field's type error "^s, nl)
 				val lf = verificar 0 cs tfields
 			in
-				{exp=recordExp lf, ty=tyr}
+				{exp=recordExp(lf), ty=tyr}
 			end
 		| trexp(SeqExp(s, nl)) =
 			let	val lexti = map trexp s
