@@ -211,7 +211,9 @@ struct
 
     fun getstrFun(args) =
     let
-      val str = TextIO.inputLine TextIO.stdIn
+      val str  = case TextIO.inputLine TextIO.stdIn of
+                    SOME s => s
+                    |NONE => raise Fail("Should't happen(getStrFun)")
     in
       storeString str
     end

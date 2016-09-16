@@ -104,7 +104,9 @@ fun procEntryExit{level: level, body} =
   let  val label = STRING(name(#frame level), "")
     val body' = PROC{frame= #frame level, body=unNx body}
     val final = STRING(";;-------", "")
-  in  datosGlobs:=(!datosGlobs@[label, body', final]) end
+  in  datosGlobs:=(!datosGlobs@[label, body', final])
+  end
+
 fun getResult() = !datosGlobs
 
 fun stringLen s =
@@ -153,7 +155,13 @@ fun simpleVar(acc, lvl) =
 fun varDec(acc) = simpleVar(acc, getActualLev())
 
 fun fieldVar(var, field) =
-  Ex (CONST 0) (*COMPLETAR*)
+  let val varExp = unEx var
+      val r = newtemp()
+      val fieldAddr = MEM (BINOP (PLUS, TEMP r, CONST (wSz * field)))
+  in
+    Ex (ESEQ (seq[MOVE (TEMP r, varExp),
+                  EXP(externalCall("_checkNil", [TEMP r]))], fieldAddr))
+  end
 
 fun subscriptVar(arr, ind) =
 let
@@ -293,13 +301,49 @@ fun forExp {lo, hi, var, body} =
   end
 
 fun ifThenExp{test, then'} =
-  Ex (CONST 0) (*COMPLETAR*)
+  let
+    val tst = unCx test
+    val (t,f) = (newlabel(), newlabel())
+  in
+    Nx (seq [tst(t,f),
+            LABEL t,
+            unNx then',
+            LABEL f])
+  end
 
 fun ifThenElseExp {test,then',else'} =
-  Ex (CONST 0) (*COMPLETAR*)
+  let
+    val tst = unCx test
+    val thenExp = unEx then'
+    val elseExp = unEx else'
+    val (t,f,lexit) = (newlabel(), newlabel(), newlabel())
+    val r = newtemp()
+  in
+    Ex (ESEQ (seq [tst(t,f),
+                  LABEL t,
+                  MOVE(TEMP r, thenExp),
+                  JUMP (NAME lexit, [lexit]),
+                  LABEL f,
+                  MOVE(TEMP r, elseExp),
+                  JUMP (NAME lexit, [lexit]),
+                  LABEL lexit], TEMP r))
+  end
 
 fun ifThenElseExpUnit {test,then',else'} =
-  Ex (CONST 0) (*COMPLETAR*)
+  let
+    val tst = unCx test
+    val (t,f,lexit) = (newlabel(), newlabel(), newlabel())
+    val r = newtemp()
+  in
+    Nx (seq [tst(t,f),
+            LABEL t,
+            unNx then',
+            JUMP (NAME lexit, [lexit]),
+            LABEL f,
+            unNx else',
+            JUMP (NAME lexit, [lexit]),
+            LABEL lexit])
+  end
 
 fun assignExp{var, exp} =
 let

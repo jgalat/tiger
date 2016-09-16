@@ -7,6 +7,6 @@ let
     l.i
   var x : list := cons(1, cons (2, nil))
 in
-  x.tail.tail.tail.tail;
+  x.tail.tail;
   0
 end

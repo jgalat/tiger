@@ -43,10 +43,6 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
 		formals=[TInt], result=TUnit, extern=true})
 	])
 
-fun zip [] _ = []
-	| zip _ [] = []
-	| zip (h::t) (k::l) = (h,k)::(zip t l)
-
 fun tipoReal (TTipo (s, ref (SOME t))) = t
   | tipoReal (TTipo (s, ref NONE)) = raise Fail (s^" is NONE!")
   | tipoReal t = t
@@ -161,24 +157,24 @@ fun transExp(venv, tenv) =
 				val exprs = map (fn{exp, ty} => exp) lexti
 				val {exp, ty=tipo} = hd(rev lexti)
 			in	{ exp=seqExp (exprs), ty=tipo } end
-		| trexp(AssignExp({var=SimpleVar s, exp}, nl)) = (* TODO *)
+		| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
 			let val _ = (case tabBusca (s, venv) of
 								NONE => error(s^": variable is not in scope", nl)
 							| SOME (VIntro _) => error(s^": read only variable", nl)
 							| SOME (Func _)   => error(s^": assigning an expression to a function", nl)
 							| _               => ())
-					val {exp = _, ty=typVar} = trvar (SimpleVar s, nl)
-					val {exp = _, ty=typExp} = trexp exp
+					val {exp = expVar, ty=typVar} = trvar (SimpleVar s, nl)
+					val {exp = expExp, ty=typExp} = trexp exp
 			in if tiposIguales typVar typExp
-						 then {exp=nilExp(), ty=TUnit}
+						then {exp = assignExp{var = expVar, exp = expExp}, ty=TUnit}
 						else error (s^": Types do not match", nl)
 			end
-		| trexp(AssignExp({var, exp}, nl)) = (* TODO *)
-			let val {exp = _, ty = typVar} = trvar (var, nl)
-					val {exp = _, ty = typExp} = trexp exp
+		| trexp(AssignExp({var, exp}, nl)) =
+			let val {exp = expVar, ty = typVar} = trvar (var, nl)
+					val {exp = expExp, ty = typExp} = trexp exp
 			in
 					if tiposIguales typVar typExp
-							then {exp = nilExp(), ty = TUnit}
+							then {exp = assignExp{var = expVar, exp = expExp}, ty = TUnit}
 							else error("Types do not match", nl)
 			end
 		| trexp(IfExp({test, then', else'=SOME else'}, nl)) =
@@ -239,66 +235,69 @@ fun transExp(venv, tenv) =
 			end
 		| trexp(BreakExp nl) =
 			{exp=breakExp() handle _ => error("break outside of loop", nl), ty=TUnit}
-		| trexp(ArrayExp({typ, size, init}, nl)) = (*TODO*)
-		let val typ = (case tabBusca(typ, tenv) of
-											SOME (TArray (t, u)) => (t,u)
-											| SOME _ => error(typ^": is not an array", nl)
-											| _  => error(typ^": undefined type", nl))
-				val {exp = _, ty = typInit} = trexp init
-				val _ = if tiposIguales typInit (#1 typ)
-									then ()
-									else error("types do not match", nl)
-				val {exp = _, ty = typSize} = trexp size
-				val _ = if tiposIguales typSize TInt
-									then ()
-									else error("size isn't integer", nl)
-		in {exp = nilExp(), ty = TArray typ}
-		end
-		and trvar(SimpleVar s, nl) = (* TODO *)
+		| trexp(ArrayExp({typ, size, init}, nl)) =
+			let val typ = (case tabBusca(typ, tenv) of
+												SOME (TArray (t, u)) => (t,u)
+												| SOME _ => error(typ^": is not an array", nl)
+												| _  => error(typ^": undefined type", nl))
+					val {exp = initExp, ty = typInit} = trexp init
+					val _ = if tiposIguales typInit (#1 typ)
+										then ()
+										else error("types do not match", nl)
+					val {exp = sizeExp, ty = typSize} = trexp size
+					val _ = if tiposIguales typSize TInt
+										then ()
+										else error("size isn't integer", nl)
+			in {exp = arrayExp{init=initExp, size=sizeExp}, ty = TArray typ}
+			end
+		and trvar(SimpleVar s, nl) =
 			(case tabBusca(s, venv) of
 						NONE        => error(s^": undefined variable", nl)
-					| SOME (VIntro _) => {exp = nilExp(), ty = TInt}
-					| SOME (Var {ty=t,...}) => {exp = nilExp() , ty = t}
+					| SOME (VIntro {access = acc, level = lvl}) => {exp = simpleVar(acc, lvl), ty = TInt}
+					| SOME (Var {ty=t, access = acc, level = lvl}) => {exp = simpleVar(acc, lvl) , ty = t}
 					| SOME _      => error(s^": is a function, not a variable", nl))
-		| trvar(FieldVar(v, s), nl) = (* TODO *)
-			let val {exp = _, ty = tyv} = trvar (v, nl)
+		| trvar(FieldVar(v, s), nl) =
+			let val {exp = varExp, ty = tyv} = trvar (v, nl)
 					val lflds = case tipoReal tyv of
 													TRecord (l,_)  =>  l
 													| _ => error("variable is not a record", nl)
 					val (tr,nc) =  case List.find (fn (n, _, _) => n = s) lflds of
-													 SOME (_,tyf, n) => (tyf,n)
+													 SOME (_,tyf, n) => (tyf, n)
 													 | _ => error(s^": inexistent field in record",nl)
-			in {exp = nilExp(), ty = tipoReal tr}
+			in {exp = fieldVar(varExp, nc), ty = tipoReal tr}
 			end
-		| trvar(SubscriptVar(v, e), nl) = (* TODO *)
-			let val {exp = _, ty = tyv} 	= trvar(v, nl)
-					val {exp = _, ty = tyexp} = trexp e
+		| trvar(SubscriptVar(v, e), nl) =
+			let val {exp = varExp, ty = tyv} 	= trvar(v, nl)
+					val {exp = expExp, ty = tyexp} = trexp e
 					val tr = (case tipoReal tyv of
 												TArray (t, _) => t
 											| _             => error("variable is not an array", nl))
-			in 	if tiposIguales tyexp TInt then {exp = nilExp(), ty = tr}
+			in 	if tiposIguales tyexp TInt then {exp = subscriptVar(varExp, expExp), ty = tr}
 					else error("index is not integer", nl)
 			end
-			and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = (* TODO *)
-	      (*let val {exp = _, ty = typExp} = transExp (venv, tenv) init
-	          val _ = if typExp=TNil then error("variable with no explicit type is type nil", pos) else ()
-	          val venv' = tabRInserta (name, Var {ty=typExp}, venv) (* <-- *)
-	      in (venv', tenv, []) end *)
-				(venv, tenv, [])
-    | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) = (* TODO *)
-      (*let val {exp = _, ty = typExp} = transExp (venv, tenv) init
+			and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
+	      let val {exp = initExp, ty = typInit} = transExp (venv, tenv) init
+	          val _ = if typInit=TNil then error("variable with no explicit type is type nil", pos) else ()
+						val acc = allocLocal (topLevel()) (!escape)
+						val lvl = getActualLev()
+	          val venv' = tabRInserta (name, Var {ty = typInit, access = acc, level = lvl}, venv)
+	      in (venv', tenv, [initExp])
+				end
+    | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
+      let val {exp = initExp, ty = typInit} = transExp (venv, tenv) init
           val tt = (case tabBusca (s, tenv) of
                       SOME t => t
                       | NONE => error(s^": undefined type", pos))
-          val _ = if tiposIguales tt typExp then () else error("non-matching types", pos)
-          val venv' = tabRInserta (name, Var {ty = tt} (**), venv)
-      in (venv', tenv, []) end*)
-				(venv, tenv, [])
+          val _ = if tiposIguales tt typInit then () else error("non-matching types", pos)
+					val acc = allocLocal (topLevel()) (!escape)
+					val lvl = getActualLev()
+					val venv' = tabRInserta (name, Var {ty = tt, access = acc, level = lvl}, venv)
+      in (venv', tenv, [initExp])
+			end
     | trdec (venv,tenv) (FunctionDec []) =
       (venv, tenv, [])
-    | trdec (venv,tenv) (FunctionDec fs) = (* TODO *)
-      (*let val nl = #2 (List.hd fs)
-
+    | trdec (venv,tenv) (FunctionDec fs) =
+      let val nl = #2 (List.hd fs)
           fun reps [] = false
           | reps ({name,...}::t) = if List.exists (fn {name = x,...} => x = name) t then true else reps t
           fun FDecToFEntry {name, params, result, body} =
@@ -312,37 +311,48 @@ fun transExp(venv, tenv) =
                                 SOME tt => tt
                                 |NONE => error(t^": undefined type", nl))
                     |NONE => TUnit
-            in Func {level = () (**), label = tigertemp.newlabel(), formals = formal, result = resType, extern = false} end (* <-- *)
-
+            in Func { level = newLevel{parent=topLevel(), name=name, formals= List.map (! o #escape) params},
+											label = tigertemp.newlabel() ^"_"^ name,
+											formals = formal,
+											result = resType,
+											extern = false}
+						end
           val fs' = List.map #1 fs
           val _ = if reps fs' then error("repeated names in batch declaration", nl) else ()
           val fEntries = List.map FDecToFEntry fs'
-          val fNameEntry = zip (List.map #name fs') fEntries
+          val fNameEntry = ListPair.zip (List.map #name fs', fEntries)
           val venv' = List.foldl (fn (f,tab) => tabRInserta (#1 f, #2 f, tab)) venv fNameEntry
-          val fDecFEntry = zip fs' fEntries
-          fun trexpBodyNCompare ({params, body, ...}, Func {formals, result, ...}) =
-            let val vars = map #name params
-                val vt = zip vars formals
-                val venv'' = List.foldl (fn ((v,t),e) => tabRInserta (v, Var {ty=t}, e)) venv' vt
-                val {exp = _, ty = typBody} = transExp (venv'', tenv) body
-            in if tiposIguales typBody result
-                then ()
+          val fDecFEntry = ListPair.zip(fs', fEntries)
+
+					fun trexpBodyNCompare ({params, body, ...}, Func {formals, result, level, ... }) =
+            let val vt = ListPair.zip(params, formals)
+						    val _ = preFunctionDec()
+								val _ = pushLevel level
+                val venv'' = List.foldl (fn ((v,t),e) => tabRInserta (#name v, Var {ty=t, access = allocLocal (topLevel()) (!(#escape v)), level = getActualLev()}, e)) venv' vt
+								val {exp = expBody, ty = typBody} = transExp (venv'', tenv) body
+								val interCode = functionDec(expBody, topLevel(), tiposIguales result TUnit)
+								val _ = popLevel()
+								val _ = postFunctionDec()
+						in if tiposIguales typBody result
+                then interCode
                 else error("function body type doesn't match result type", nl)
             end
               | trexpBodyNCompare _ = error("shouldn't happen (4)", nl)
-          val _ = List.map trexpBodyNCompare fDecFEntry
-      in (venv', tenv, []) end*)
-			(venv, tenv, [])
+
+					val interCodeBodies = List.map trexpBodyNCompare fDecFEntry
+      in (venv', tenv, interCodeBodies)
+			end
     | trdec (venv,tenv) (TypeDec []) =
       (venv, tenv, [])
-    | trdec (venv, tenv) (TypeDec ts) = (* TODO *)
+    | trdec (venv, tenv) (TypeDec ts) =
       let val nl = #2 (List.hd ts)
           fun reps [] = false
           | reps ({name,...}::t) = if List.exists (fn {name = x,...} => x = name) t then true else reps t
           val ts' = map #1 ts
           val _ = if reps ts' then error("repeated names in batch declaration", nl) else ()
           val tenv' = (tigertopsort.fijaTipos ts' tenv) handle tigertopsort.Ciclo => error("Cycle", nl)
-      in (venv, tenv', []) end
+      in (venv, tenv', [])
+			end
 	in trexp end
 fun transProg ex =
 	let	val main =

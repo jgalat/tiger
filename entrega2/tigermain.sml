@@ -15,7 +15,7 @@ fun main(args) =
     val (arbol, l1)    = arg(args, "-tree")
     val (escapes, l2)  = arg(l1, "-escapes")
     val (ir, l3)    = arg(l2, "-go")
-    val (canon, l4)    = arg(l3, "-canon")
+    val (canonOp, l4)    = arg(l3, "-canon")
     val (code, l5)    = arg(l4, "-code")
     val (flow, l6)    = arg(l5, "-flow")
     val (inter, l7)    = arg(l6, "-interp")
@@ -28,9 +28,26 @@ fun main(args) =
     val lexbuf = lexstream entrada
     val expr = prog Tok lexbuf handle _ => errParsing lexbuf
     val _ = findEscape(expr)
+    val _ = transProg(expr)
     val _ = if arbol then tigerpp.exprAst expr else ()
+		val fragmentos = tigertrans.getResult()
+    val canon = (tigercanon.traceSchedule o tigercanon.basicBlocks o tigercanon.linearize)
+    fun divideFrags [] = ([],[])
+      | divideFrags (tigerframe.PROC {body,frame} :: t) =
+          let val (stm,str) = divideFrags t
+          in ((canon body,frame)::stm,str)
+          end
+      | divideFrags (tigerframe.STRING (lab,st) :: t) =
+          let val (stm,str) = divideFrags t
+          in (stm,(lab,st)::str)
+          end
+    val (canonizado, strings) = divideFrags fragmentos
+    val _ = if canonOp
+          then List.app (fn (c, f) => (print ((tigerframe.name f)^"--------------------------\n"); List.app (print o tigerit.tree) c)) canonizado
+          else ()
+    val _ = tigerinterp.inter inter canonizado strings
   in
-    transProg(expr);
+  (*  transProg(expr); *)
     print "Y!!\n"
   end  handle Fail s => print("Fail: "^s^"\n")
 

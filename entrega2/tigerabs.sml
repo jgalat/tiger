@@ -5,7 +5,7 @@ type symbol = string
 type pos = int
 
 datatype var = SimpleVar of symbol
-  | FieldVar of var * symbol
+  | FieldVar of var * symbol 
   | SubscriptVar of var * exp
 
 and exp = VarExp of var * pos
