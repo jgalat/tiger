@@ -36,6 +36,7 @@ struct
       fun printMem () =
       let
         val ls = tabAList(!tabMem)
+        val _ = print ("---------- Largo de ls" ^ Int.toString (length ls) ^ "\n")
         fun p (a,b) = (print(Int.toString(a)); print(" -> "); print(Int.toString(!b)); print("\n"))
       in
         (print("MEM:\n"); List.app p ls)
@@ -271,7 +272,7 @@ struct
         (*Si lab es de biblioteca, usar la función de la tabla*)
         val rv = case tabBusca(lab, tabLib) of
           SOME f => f(eargs)
-          | NONE => evalFun(lab, eargs)
+          | NONE => evalFun(lab, eargs) before print ("-------"^Int.toString (length eargs) ^ "\n")
       in
         (storeTemp tigerframe.rv rv; rv)
       end
@@ -349,7 +350,8 @@ struct
         val fpPrev = loadTemp tigerframe.fp
         val _ = storeTemp tigerframe.fp (fpPrev-1024*1024)
         (* Poner argumentos donde la función los espera *)
-        val formals = map (fn x => tigerframe.exp x (TEMP tigerframe.fp)) (tigerframe.formals frame)
+        val formals = map (fn x => tigerframe.exp x (*(TEMP tigerframe.fp)*)) (tigerframe.formals frame)
+        val _ = print ("ESTA ES LA CAGADA" ^ Int.toString (length formals) ^ " " ^ Int.toString (length args) ^ "\n")
         val formalsValues = ListPair.zip(formals, args)
         val _ = map (fn (x,y) =>
           case x of

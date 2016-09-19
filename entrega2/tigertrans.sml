@@ -201,7 +201,7 @@ end
 
 fun callExp (name,external,isproc,lev:level,ls) =
   let val actualLev = getActualLev()
-      fun menAMay 0 = TEMP name
+      fun menAMay 0 = TEMP fp
         | menAMay n = MEM (BINOP (PLUS, menAMay (n-1), CONST fpPrevLev))
       val fpLev = if (#level lev) = actualLev
                     then MEM (BINOP (PLUS, TEMP fp, CONST fpPrevLev))
@@ -212,9 +212,9 @@ fun callExp (name,external,isproc,lev:level,ls) =
          | preparaArgs (h::t) (rt,re) =
             case h of
               Ex (CONST s) => preparaArgs t ((CONST s)::rt, re)
-            |  Ex (NAME s) => preparaArgs t ((NAME s)::rt, re)
+            | Ex (NAME s) => preparaArgs t ((NAME s)::rt, re)
             | Ex (TEMP s) => preparaArgs t ((TEMP s)::rt, re)
-            | _           =>   let val t' = newtemp()
+            | _           =>  let val t' = newtemp()
                               in preparaArgs t ((TEMP t')::rt, (MOVE (TEMP t', unEx h))::re) end
       val (ta, ls') = preparaArgs (List.rev ls) ([], [])
       val ta' = if external then ta else (fpLev::ta)

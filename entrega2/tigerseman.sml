@@ -311,8 +311,10 @@ fun transExp(venv, tenv) =
                                 SOME tt => tt
                                 |NONE => error(t^": undefined type", nl))
                     |NONE => TUnit
-            in Func { level = newLevel{parent=topLevel(), name=name, formals= List.map (! o #escape) params},
-											label = tigertemp.newlabel() ^"_"^ name,
+								val label = tigertemp.newlabel()
+								val realName = if name = "_tigermain" then "_tigermain" else name ^ "_" ^ label
+            in Func { level = newLevel{parent=topLevel(), name=realName, formals= List.map (! o #escape) params},
+											label = realName,
 											formals = formal,
 											result = resType,
 											extern = false}
@@ -328,9 +330,14 @@ fun transExp(venv, tenv) =
             let val vt = ListPair.zip(params, formals)
 						    val _ = preFunctionDec()
 								val _ = pushLevel level
-                val venv'' = List.foldl (fn ((v,t),e) => tabRInserta (#name v, Var {ty=t, access = allocLocal (topLevel()) (!(#escape v)), level = getActualLev()}, e)) venv' vt
+                val venv'' = List.foldl (fn ((v,t),e) =>
+																					tabRInserta (#name v,
+																											Var {ty=t,
+																													access = allocArg (level) (true),
+																													level = getActualLev()},
+																											 e)) venv' vt
 								val {exp = expBody, ty = typBody} = transExp (venv'', tenv) body
-								val interCode = functionDec(expBody, topLevel(), tiposIguales result TUnit)
+								val interCode = functionDec(expBody, level, tiposIguales result TUnit)
 								val _ = popLevel()
 								val _ = postFunctionDec()
 						in if tiposIguales typBody result

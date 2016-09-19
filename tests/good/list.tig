@@ -7,6 +7,6 @@ let
     l.i
   var x : list := cons(1, cons (2, nil))
 in
-  x.tail.tail;
+  head(x);
   0
 end
