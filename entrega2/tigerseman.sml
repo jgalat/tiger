@@ -199,9 +199,10 @@ fun transExp(venv, tenv) =
 				val _ = preWhileForExp()
 				val {exp=etest, ty=ttest} = trexp test
 				val {exp=ebody, ty=tbody} = trexp body
+				val wExp = whileExp {test=etest, body=ebody, lev=topLevel()}
 				val _ = postWhileForExp()
 			in
-				if tiposIguales ttest TInt andalso tiposIguales tbody TUnit then {exp=whileExp {test=etest, body=ebody, lev=topLevel()}, ty=TUnit}
+				if tiposIguales ttest TInt andalso tiposIguales tbody TUnit then {exp=wExp , ty=TUnit}
 				else if not(tiposIguales ttest TInt) then error("type error in condition", nl)
 				else error("body should be unit type", nl)
 			end
@@ -215,10 +216,11 @@ fun transExp(venv, tenv) =
 					val venv' = fromTab venv
 					val venv'' = tabInserta (var, VIntro {access = acc', level = lvl}, venv')
 					val {exp = expBody, ty = typBody} = transExp (venv'', tenv) body
-					val ev' = simpleVar(acc', 0)
+					val ev' = simpleVar(acc', lvl)
+					val fExp = forExp{lo = expLo, hi = expHi, var = ev', body = expBody}
 					val _ = postWhileForExp()
 			in
-					if tiposIguales typBody TUnit then {exp = forExp{lo = expLo, hi = expHi, var = ev', body = expBody}, ty = TUnit} else error("incorrect Type", nl)
+					if tiposIguales typBody TUnit then {exp = fExp, ty = TUnit} else error("incorrect Type", nl)
 			end
 		| trexp(LetExp({decs, body}, _)) =
 			let

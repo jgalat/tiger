@@ -27,9 +27,9 @@ fun main(args) =
       | _ => raise Fail "unknown option!"
     val lexbuf = lexstream entrada
     val expr = prog Tok lexbuf handle _ => errParsing lexbuf
+    val _ = if arbol then tigerpp.exprAst expr else ()
     val _ = findEscape(expr)
     val _ = transProg(expr)
-    val _ = if arbol then tigerpp.exprAst expr else ()
 		val fragmentos = tigertrans.getResult()
     val canon = (tigercanon.traceSchedule o tigercanon.basicBlocks o tigercanon.linearize)
     fun divideFrags [] = ([],[])
@@ -45,7 +45,7 @@ fun main(args) =
     val _ = if canonOp
           then List.app (fn (c, f) => (print ((tigerframe.name f)^"--------------------------\n"); List.app (print o tigerit.tree) c)) canonizado
           else ()
-    val _ = tigerinterp.inter inter canonizado strings
+    val _ = if inter then tigerinterp.inter inter canonizado strings else ()
   in
   (*  transProg(expr); *)
     print "Y!!\n"

@@ -145,7 +145,7 @@ fun intExp(i) = Ex (CONST i)
 
 fun simpleVar(acc, lvl) =
   case acc of
-    InReg r => (print ("xDDDD" ^ r) ;Ex (TEMP r))
+    InReg r => Ex (TEMP r)
   | InFrame k => let fun aux 0 = TEMP fp
                       |  aux n = MEM (BINOP (PLUS, CONST fpPrevLev, aux (n-1)))
                      val aLvl = getActualLev()
@@ -172,7 +172,7 @@ let
 in
   Ex( ESEQ(seq[MOVE(TEMP ra, a),
     MOVE(TEMP ri, i),
-    EXP(externalCall("_checkindex", [TEMP ra, TEMP ri]))],
+    EXP(externalCall("_checkIndexArray", [TEMP ra, TEMP ri]))],
     MEM(BINOP(PLUS, TEMP ra,
       BINOP(MUL, TEMP ri, CONST tigerframe.wSz)))))
 end
@@ -196,7 +196,7 @@ let
   val s = unEx size
   val i = unEx init
 in
-  Ex (externalCall("allocArray", [s, i]))
+  Ex (externalCall("_initArray", [s, i]))
 end
 
 fun callExp (name,external,isproc,lev:level,ls) =
@@ -207,7 +207,7 @@ fun callExp (name,external,isproc,lev:level,ls) =
                     then MEM (BINOP (PLUS, TEMP fp, CONST fpPrevLev))
                     else if (#level lev) < actualLev
                           then menAMay (actualLev - (#level lev) + 1)
-                          else TEMP fp 
+                          else TEMP fp
       fun preparaArgs [] (rt,re) = (rt,re)
          | preparaArgs (h::t) (rt,re) =
             case h of
@@ -248,7 +248,7 @@ fun seqExp ([]:exp list) = Nx (EXP(CONST 0))
         | cond => Ex (ESEQ(seq(unx exps), unEx cond))
     end
 
-fun preWhileForExp() = pushSalida(SOME(newlabel()))
+fun preWhileForExp() = pushSalida(SOME(tigertemp.newlabel()))
 
 fun postWhileForExp() = (popSalida(); ())
 
@@ -354,8 +354,7 @@ in
 end
 
 fun varDec(acc,exp1) =
-  (print("entramos a varDec");
-  assignExp{var = simpleVar(acc, getActualLev()), exp = exp1})
+  assignExp{var = simpleVar(acc, getActualLev()), exp = exp1}
 
 fun binOpIntExp {left, oper, right} =
   let val l = unEx left
