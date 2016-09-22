@@ -1,0 +1,5 @@
+let
+ function f(a:int,b:int) : int = a + b
+in
+  f(70,71)
+end

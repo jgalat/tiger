@@ -281,7 +281,7 @@ fun transExp(venv, tenv) =
 						val acc = allocLocal (topLevel()) (!escape)
 						val lvl = getActualLev()
 	          val venv' = tabRInserta (name, Var {ty = typInit, access = acc, level = lvl}, venv)
-	      in (venv', tenv, [initExp])
+	      in (venv', tenv, [varDec(acc, initExp)])
 				end
     | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
       let val {exp = initExp, ty = typInit} = transExp (venv, tenv) init
@@ -292,7 +292,7 @@ fun transExp(venv, tenv) =
 					val acc = allocLocal (topLevel()) (!escape)
 					val lvl = getActualLev()
 					val venv' = tabRInserta (name, Var {ty = tt, access = acc, level = lvl}, venv)
-      in (venv', tenv, [initExp])
+      in (venv', tenv, [varDec(acc, initExp)])
 			end
     | trdec (venv,tenv) (FunctionDec []) =
       (venv, tenv, [])
@@ -313,7 +313,7 @@ fun transExp(venv, tenv) =
                     |NONE => TUnit
 								val label = tigertemp.newlabel()
 								val realName = if name = "_tigermain" then "_tigermain" else name ^ "_" ^ label
-            in Func { level = newLevel{parent=topLevel(), name=realName, formals= List.map (! o #escape) params},
+            in Func { level = newLevel{parent=topLevel(), name=realName, formals= true :: List.map (! o #escape) params},
 											label = realName,
 											formals = formal,
 											result = resType,
@@ -328,12 +328,13 @@ fun transExp(venv, tenv) =
 
 					fun trexpBodyNCompare ({params, body, ...}, Func {formals, result, level, ... }) =
             let val vt = ListPair.zip(params, formals)
+
 						    val _ = preFunctionDec()
 								val _ = pushLevel level
                 val venv'' = List.foldl (fn ((v,t),e) =>
 																					tabRInserta (#name v,
 																											Var {ty=t,
-																													access = allocArg (level) (true),
+																													access = allocArg (level) true (* (!(#escape v)) *),
 																													level = getActualLev()},
 																											 e)) venv' vt
 								val {exp = expBody, ty = typBody} = transExp (venv'', tenv) body

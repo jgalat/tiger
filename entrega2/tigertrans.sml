@@ -145,14 +145,14 @@ fun intExp(i) = Ex (CONST i)
 
 fun simpleVar(acc, lvl) =
   case acc of
-    InReg r => Ex (TEMP r)
+    InReg r => (print ("xDDDD" ^ r) ;Ex (TEMP r))
   | InFrame k => let fun aux 0 = TEMP fp
                       |  aux n = MEM (BINOP (PLUS, CONST fpPrevLev, aux (n-1)))
                      val aLvl = getActualLev()
                  in Ex (MEM (BINOP (PLUS, aux (aLvl - lvl), CONST k)))
                  end
 
-fun varDec(acc) = simpleVar(acc, getActualLev())
+
 
 fun fieldVar(var, field) =
   let val varExp = unEx var
@@ -207,7 +207,7 @@ fun callExp (name,external,isproc,lev:level,ls) =
                     then MEM (BINOP (PLUS, TEMP fp, CONST fpPrevLev))
                     else if (#level lev) < actualLev
                           then menAMay (actualLev - (#level lev) + 1)
-                          else TEMP fp
+                          else TEMP fp 
       fun preparaArgs [] (rt,re) = (rt,re)
          | preparaArgs (h::t) (rt,re) =
             case h of
@@ -216,7 +216,7 @@ fun callExp (name,external,isproc,lev:level,ls) =
             | Ex (TEMP s) => preparaArgs t ((TEMP s)::rt, re)
             | _           =>  let val t' = newtemp()
                               in preparaArgs t ((TEMP t')::rt, (MOVE (TEMP t', unEx h))::re) end
-      val (ta, ls') = preparaArgs (List.rev ls) ([], [])
+      val (ta, ls') = preparaArgs ((*List.rev*) ls) ([], [])
       val ta' = if external then ta else (fpLev::ta)
     in if isproc then Nx (seq (ls'@[EXP (CALL (NAME name, ta'))]))
        else let val tmp = newtemp()
@@ -352,6 +352,10 @@ let
 in
   Nx (MOVE(v,vl))
 end
+
+fun varDec(acc,exp1) =
+  (print("entramos a varDec");
+  assignExp{var = simpleVar(acc, getActualLev()), exp = exp1})
 
 fun binOpIntExp {left, oper, right} =
   let val l = unEx left

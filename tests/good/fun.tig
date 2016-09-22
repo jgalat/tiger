@@ -1,5 +1,8 @@
 let
-  function f (a : int, b : int, c : int) : int = a + b + c
+  function f (a : int, b:int, c : int) : int =
+    let function g (d: int, e: int, f: int) : int = a + f
+    in g(0,0,70)
+    end
 in
-  f(70,71,72)
+  f(71,0,0)
 end
