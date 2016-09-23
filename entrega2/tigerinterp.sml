@@ -314,8 +314,10 @@ struct
       let
         (* Encontrar la función*)
         val ffrac = List.filter (fn (body, frame) => tigerframe.name(frame)=f) funfracs
-        val _ = if (List.length(ffrac)<>1) then raise Fail ("Either can't find function, or it's repeated: "^f^"\n") else ()
-        val [(body, frame)] = ffrac
+        val (body, frame) = (case ffrac of
+                                [(b, f)] => (b, f)
+                              | _       => raise Fail ("Either can't find function, or it's repeated: "^f^"\n"))
+
         (* Mostrar qué se está haciendo, si showdebug *)
         val _ = if showdebug then (print((tigerframe.name frame)^":\n");List.app (print o tigerit.tree) body; print("Arguments: "); List.app (fn n => (print(Int.toString(n)); print("  "))) args; print("\n")) else ()
 
@@ -354,7 +356,8 @@ struct
         val _ = map (fn (x,y) =>
           case x of
             TEMP t => storeTemp t y
-            | MEM m => storeMem (evalExp m) y) formalsValues
+            | MEM m => storeMem (evalExp m) y
+            | _  => raise Fail "shouldn't happen (1) (evalFun)") formalsValues
         (* Ejecutar la lista de instrucciones *)
         val _ = execute body
         val rv = loadTemp tigerframe.rv
