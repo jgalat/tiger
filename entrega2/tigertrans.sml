@@ -119,7 +119,7 @@ fun stringExp(s: string) =
   let  val l = newlabel()
     val len = ".long "^makestring(stringLen s)
     val str = ".string \""^s^"\""
-    val _ = datosGlobs:=(!datosGlobs @ [STRING(l, len), STRING("", str)])
+    val _ = datosGlobs:=(!datosGlobs @ [STRING(l, len), STRING("", str)]) (* TODO en codigo assembler hay que intercambiar str y len*)
   in  Ex(NAME l) end
 
 fun preFunctionDec() =
@@ -291,6 +291,7 @@ fun forExp {lo, hi, var, body} =
              | _         => let val t = newtemp()
                              in [MOVE (var', unEx lo),
                                 MOVE (TEMP t, unEx hi),
+                                LABEL l2,
                                 unNx body,
                                 CJUMP (EQ, var', TEMP t, lsal, l1),
                                 LABEL l1,

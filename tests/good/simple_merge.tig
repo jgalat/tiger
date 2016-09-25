@@ -1,0 +1,21 @@
+let
+  type list = {first : int, rest : list}
+
+  function concat (a : list, b : list) : list =
+    if a = nil then b
+    else if b = nil then a
+    else list {first = a.first, rest = concat(a.rest, b)}
+
+  var a : list := list {first = 70, rest = list {first = 71, rest = nil}}
+  var b : list := list {first = 72, rest = nil}
+
+  function merge (a : list, b : list) : list =
+    if a = nil then b
+    else if b = nil then a
+    else if a.first < b.first
+       then list {first = a.first, rest = merge (a.rest, b)}
+       else list {first = b.first, rest = merge (a, b.rest)}
+in
+  merge(b,a);
+  0
+end

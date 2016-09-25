@@ -42,6 +42,7 @@ fun main(args) =
           in (stm,(lab,st)::str)
           end
     val (canonizado, strings) = divideFrags fragmentos
+    val _ = List.app (fn (l,s) =>  print ("LABEL " ^ l ^ " STRING " ^ s ^ "\n")) strings
     val _ = if canonOp
           then List.app (fn (c, f) => (print ((tigerframe.name f)^"--------------------------\n"); List.app (print o tigerit.tree) c)) canonizado
           else ()

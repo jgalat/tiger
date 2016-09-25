@@ -330,7 +330,6 @@ fun transExp(venv, tenv) =
 
 					fun trexpBodyNCompare ({params, body, ...}, Func {formals, result, level, ... }) =
             let val vt = ListPair.zip(params, formals)
-
 						    val _ = preFunctionDec()
 								val _ = pushLevel level
                 val venv'' = List.foldl (fn ((v,t),e) =>
@@ -340,17 +339,17 @@ fun transExp(venv, tenv) =
 																													level = getActualLev()},
 																											 e)) venv' vt
 								val {exp = expBody, ty = typBody} = transExp (venv'', tenv) body
-								val interCode = functionDec(expBody, level, tiposIguales result TUnit)
+								val _ = functionDec(expBody, level, tiposIguales result TUnit)
 								val _ = popLevel()
 								val _ = postFunctionDec()
 						in if tiposIguales typBody result
-                then interCode
+                then ()
                 else error("function body type doesn't match result type", nl)
             end
               | trexpBodyNCompare _ = error("shouldn't happen (4)", nl)
 
-					val interCodeBodies = List.map trexpBodyNCompare fDecFEntry
-      in (venv', tenv, interCodeBodies)
+					val _ = List.map trexpBodyNCompare fDecFEntry
+      in (venv', tenv, [])
 			end
     | trdec (venv,tenv) (TypeDec []) =
       (venv, tenv, [])
