@@ -25,21 +25,27 @@ val fp = "%ebp"        (* frame pointer *)
 val sp = "%esp"        (* stack pointer *)
 val rv = "%eax"        (* return value  *)
 val ov = "%edx"        (* overflow value (edx en el 386) *)
-val wSz = 4          (* word size in bytes *)
+val si = "%esi"
+val di = "%edi"
+val bx = "%ebx"
+val ds = "%ds"
+val es = "%es"
+val ss = "%ss"
+val wSz = 4            (* word size in bytes *)
 val log2WSz = 2        (* base two logarithm of word size in bytes *)
-val fpPrev = 0        (* offset (bytes) *)
+val fpPrev = 0         (* offset (bytes) *)
 val fpPrevLev = 8      (* offset (bytes) *)
-val argsInicial = 2      (* words *)
-val argsOffInicial = 1    (* words *)
+val argsInicial = 2    (* words *)
+val argsOffInicial = 1 (* words *)
 val argsGap = wSz      (* bytes *)
-val regInicial = 1      (* reg *)
-val localsInicial = 0    (* words *)
-val localsGap = ~4       (* bytes *)
+val regInicial = 1     (* reg *)
+val localsInicial = 0  (* words *)
+val localsGap = ~1     (* words *)
 val calldefs = [rv]
 val specialregs = [rv, fp, sp]
 val argregs = []
 val callersaves = []
-val calleesaves = []
+val calleesaves = [di, si, bx, ds, es, ss]
 
 type frame = {
   name: string,
@@ -78,13 +84,25 @@ fun allocArg (f: frame) b =
 fun allocLocal (f: frame) b =
   case b of
   true =>
-    let val v =  !(#actualLocal f)+localsGap
-        val ret = InFrame(v)
-    in  #actualLocal f:=(!(#actualLocal f)-1); ret end
+    let val ret =  (!(#actualLocal f) + localsGap) * wSz
+        val _ = #actualLocal f:=(!(#actualLocal f)-1);
+    in  InFrame ret end
   | false => InReg(tigertemp.newtemp())
 fun exp(InFrame k) e = MEM(BINOP(PLUS, TEMP(fp), CONST k))
 | exp(InReg l) e = TEMP l
 fun externalCall(s, l) = CALL(NAME s, l)
 
-fun procEntryExit1 (frame,body) = body
+fun seq [] = EXP (CONST 0)
+  | seq [s] = s
+  | seq (x::xs) = SEQ (x, seq xs)
+
+fun procEntryExit1 (frame, body) =
+  let (* Ver si restaurar alrevés cuando sea haga push y pop *)
+    val inFrames = List.map (fn _ => allocLocal frame true) calleesaves
+    val calleesaves' = List.map TEMP calleesaves
+    val saveCallee = List.map (fn (f, r) => MOVE (exp f (TEMP fp), r)) (ListPair.zip (inFrames, calleesaves'))
+    val restoreCallee = List.map (fn (r, f) => MOVE (r, exp f (TEMP fp))) (ListPair.zip (calleesaves', inFrames))
+  in
+    seq (saveCallee @ [body] @ restoreCallee)
+  end
 end
