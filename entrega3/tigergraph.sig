@@ -1,8 +1,8 @@
-signature tigregraph =
+signature tigergraph =
 sig
     type graph
     type node
-    
+
     val nodes: graph -> node list
     val succ: node -> node list
     val pred: node -> node list

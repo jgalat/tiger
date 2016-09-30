@@ -41,12 +41,13 @@ fun main(args) =
           let val (stm,str) = divideFrags t
           in (stm,(lab,st)::str)
           end
-    val (canonizado, strings) = divideFrags fragmentos
+    val (canonized, strings) = divideFrags fragmentos
+    (*val canonizedFolded = List.map (fn (b, f) => (tigerfold.constFolding b, f)) canonized *)
     val _ = if canonOp
           then (List.app (fn (l,s) =>  print ("LABEL " ^ l ^ " STRING " ^ s ^ "\n")) strings;
-                List.app (fn (c, f) => (print ("\n"^(tigerframe.name f)^":\n"); List.app (print o tigerit.tree) c)) canonizado)
+                List.app (fn (c, f) => (print ("\n"^(tigerframe.name f)^":\n"); List.app (print o tigerit.tree) c)) canonized)
           else ()
-    val _ = if inter then tigerinterp.inter inter canonizado strings else ()
+    val _ = if inter then tigerinterp.inter inter canonized strings else ()
   in
     print "Y!!\n"
   end  handle Fail s => print("Fail: "^s^"\n")

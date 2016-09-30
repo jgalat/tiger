@@ -28,6 +28,8 @@ val ov = "%edx"        (* overflow value (edx en el 386) *)
 val si = "%esi"
 val di = "%edi"
 val bx = "%ebx"
+val cx = "%ecx"
+val dx = "%edx"
 val ds = "%ds"
 val es = "%es"
 val ss = "%ss"
@@ -44,7 +46,7 @@ val localsGap = ~1     (* words *)
 val calldefs = [rv]
 val specialregs = [rv, fp, sp]
 val argregs = []
-val callersaves = []
+val callersaves = [rv, cx, dx]
 val calleesaves = [di, si, bx, ds, es, ss]
 
 type frame = {
@@ -81,6 +83,7 @@ fun allocArg (f: frame) b =
         val _ = #actualArg f := !(#actualArg f)+1
     in InFrame ret end
   | false => InReg(tigertemp.newtemp())
+
 fun allocLocal (f: frame) b =
   case b of
   true =>
