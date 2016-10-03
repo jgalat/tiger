@@ -2,6 +2,7 @@ open tigerlex
 open tigergrm
 open tigerescap
 open tigerseman
+open tigerliveness
 open BasicIO Nonstdio
 
 fun lexstream(is: instream) =

@@ -16,35 +16,66 @@ struct
                case s of
                   SEQ (a,b) => (munchStm a ; munchStm b) (* No deberia pasar! *)
                  |MOVE (TEMP t1, MEM (BINOP (PLUS, CONST i, TEMP t2))) =>
-                         emit (OPER {assem="movl " ^ Int.toString i ^ "(`s0), `d0" ,
-                                    dst = [t1], src = [t2], jump = NONE})
+                    if t1 <> t2 then
+                       emit (OPER {assem = "movl " ^ Int.toString i ^ "(`s0), `d0" ,
+                                  dst = [t1],
+                                  src = [t2],
+                                  jump = NONE})
+                    else
+                      emit (OPER {assem = "addl $"^ Int.toString i^", `d0",
+                                  src = [],
+                                  dst = [t1],
+                                  jump = NONE})
                  |MOVE (TEMP t1, MEM (BINOP (PLUS, TEMP t2, CONST i))) =>
-                        emit (OPER {assem="movl " ^ Int.toString i ^ "(`s0), `d0" ,
-                                   dst = [t1], src = [t2], jump = NONE})
-                 |MOVE(MEM e1, MEM e2) => let val t = tigertemp.newtemp()
-                                   in emit (OPER {assem="movl (`s0), `d0",
-                                                  src = [munchExp e2],
-                                                  dst = [t],
-                                                  jump = NONE}) ;
-                                      emit (OPER {assem = "movl `s0, (`d0)",
-                                                  src = [t],
-                                                  dst = [munchExp e1],
-                                                  jump = NONE})
-                                    end
-                 |MOVE(MEM (CONST i), e) =>
+                   if t1 <> t2 then
+                      emit (OPER {assem = "movl " ^ Int.toString i ^ "(`s0), `d0" ,
+                                 dst = [t1],
+                                 src = [t2],
+                                 jump = NONE})
+                   else
+                     emit (OPER {assem = "addl $"^ Int.toString i^", `d0",
+                                 src = [],
+                                 dst = [t1],
+                                 jump = NONE})
+                 |MOVE (MEM e1, MEM e2) =>
+                   let val t = tigertemp.newtemp()
+                   in emit (tigerassem.MOVE {assem="movl (`s0), `d0",
+                                              src = munchExp e2,
+                                              dst = t}) ;
+                      emit (tigerassem.MOVE {assem = "movl `s0, (`d0)",
+                                              src = t,
+                                              dst = munchExp e1})
+                    end
+                |MOVE (MEM (CONST i), e) =>
                     emit (OPER {assem = "movl `s0, "^ Int.toString i,
                                 src = [munchExp e],
                                 dst = [],
                                 jump = NONE})
-                 |MOVE (e1, e2) =>  let val t = tigertemp.newtemp()
-                                    in emit (OPER {assem="movl `s0, `d0",
-                                                   src = [munchExp e2],
-                                                   dst = [t],
-                                                   jump = NONE}) ;
-                                       emit (OPER {assem = "movl `s0, `d0",
-                                                   src = [t],
-                                                   dst = [munchExp e1],
-                                                   jump = NONE})
+                |MOVE (MEM (BINOP (PLUS, e1, CONST i)), e2) =>
+                   emit (OPER {assem = "movl `s0, "^ Int.toString i^"(`s1)",
+                               src = [munchExp e2, munchExp e1],
+                               dst = [],
+                               jump = NONE})
+                |MOVE (MEM (BINOP (PLUS, CONST i, e1)), e2) =>
+                  emit (OPER {assem = "movl `s0, "^ Int.toString i^"(`s1)",
+                              src = [munchExp e2, munchExp e1],
+                              dst = [],
+                              jump = NONE})
+                |MOVE (MEM e1, e2) =>
+                  emit (OPER {assem = "movl `s0, `s1",
+                              src = [munchExp e2, munchExp e1],
+                              dst = [],
+                              jump = NONE})
+                |MOVE (TEMP t, e) => emit(tigerassem.MOVE {assem = "movl `s0, `d0",
+                                                          src = munchExp e,
+                                                          dst = t})
+                |MOVE (e1, e2) =>  let val t = tigertemp.newtemp()
+                                   in emit (tigerassem.MOVE {assem="movl `s0, `d0",
+                                                             src = munchExp e2,
+                                                             dst = t}) ;
+                                     emit (tigerassem.MOVE {assem = "movl `s0, `d0",
+                                                             src = t,
+                                                             dst = munchExp e1})
                                      end
                  |EXP (CALL (NAME f, args)) =>
                     (saveCallerSaves() ;
@@ -73,96 +104,38 @@ struct
                                               src = [munchExp e],
                                               dst = [],
                                               jump = SOME ls})
-                 |CJUMP (reloco, e1, e2, l1, l2) =>
+                 |CJUMP (oper, e1, e2, l1, l2) =>
                     let val t1 = munchExp e1
                         val t2 = munchExp e2
-                        val _  = case reloco of
-                                  EQ => (emit (OPER {assem = "jnz `j0",
-                                                      src = [],
-                                                      dst = [],
-                                                      jump = SOME [l2]}) ;
-                                          emit (OPER {assem = "jz `j0",
-                                                      src = [],
-                                                      dst = [],
-                                                      jump = SOME [l1]}))
-                                  |NE => (emit (OPER {assem = "jz `j0",
-                                                      src = [],
-                                                      dst = [],
-                                                      jump = SOME [l2]}) ;
-                                          emit (OPER {assem = "jnz `j0",
-                                                      src = [],
-                                                      dst = [],
-                                                      jump = SOME [l1]}))
-                                  |LT => (emit (OPER {assem = "jnl `j0",
-                                                      src = [],
-                                                      dst = [],
-                                                      jump = SOME [l2]}) ;
-                                          emit (OPER {assem = "jl `j0",
-                                                      src = [],
-                                                      dst = [],
-                                                      jump = SOME [l1]}))
-                                  |GT => (emit (OPER {assem = "jng `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l2]}) ;
-                                         emit (OPER {assem = "jg `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l1]}))
-                                  |LE => (emit (OPER {assem = "jnle `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l2]}) ;
-                                         emit (OPER {assem = "jle `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l1]}))
-                                  |GE => (emit (OPER {assem = "jnge `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l2]}) ;
-                                         emit (OPER {assem = "jge `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l1]}))
-                                  |ULT => (emit (OPER {assem = "jnb `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l2]}) ;
-                                         emit (OPER {assem = "jb `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l1]}))
-                                  |ULE => (emit (OPER {assem = "jnbe `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l2]}) ;
-                                         emit (OPER {assem = "jbe `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l1]}))
-                                  |UGT => (emit (OPER {assem = "jna `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l2]}) ;
-                                         emit (OPER {assem = "ja `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l1]}))
-                                  |UGE => (emit (OPER {assem = "jnae `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l2]}) ;
-                                         emit (OPER {assem = "jae `j0",
-                                                     src = [],
-                                                     dst = [],
-                                                     jump = SOME [l1]}))
+                        fun emitjmps jt jf = (emit (OPER {assem = jf^" `j0",
+                                                          src = [],
+                                                          dst = [],
+                                                          jump = SOME [l2]}) ;
+                                              emit (OPER {assem = jt^" `j0",
+                                                          src = [],
+                                                          dst = [],
+                                                          jump = SOME [l1]}))
+                        val _  = case oper of
+                                   EQ => emitjmps "jz" "jnz"
+                                  |NE => emitjmps "jnz" "jz"
+                                  |LT => emitjmps "jl" "jnl"
+                                  |GT => emitjmps "jg" "jng"
+                                  |LE => emitjmps "jle" "jnle"
+                                  |GE => emitjmps "jge" "jnge"
+                                  |ULT => emitjmps "jb" "jnb"
+                                  |ULE => emitjmps "jbe" "jnbe"
+                                  |UGT => emitjmps "ja" "jna"
+                                  |UGE => emitjmps "jae" "jnae"
                     in
-                      emit (OPER {assem = "cmp `s0, `d0",
-                                  src = [t1],
-                                  dst = [t2],
+                      emit (OPER {assem = "cmpl `s0, `s1",
+                                  src = [t1, t2],
+                                  dst = [],
                                   jump = NONE})
                     end
+                 |LABEL lb =>
+                    emit (tigerassem.LABEL {assem = lb^":",
+                                            lab = lb})
+
     and saveCallerSaves() =
       let fun emitedefs s = emit (OPER {assem = "pushl `s0",
                                         src = [s],
@@ -172,12 +145,13 @@ struct
       end
 
     and restoreCallerSaves() =
-      let fun emitedefs (h::t) =
-          let val _ = emit (OPER {assem = "popl `d0",
-                                  src = [],
-                                  dst = [h],
-                                  jump = NONE})
-          in emitedefs t end
+      let fun emitedefs [] = ()
+          |   emitedefs (h::t) =
+              let val _ = emit (OPER {assem = "popl `d0",
+                                      src = [],
+                                      dst = [h],
+                                      jump = NONE})
+              in emitedefs t end
       in emitedefs (List.rev callersaves)
       end
 
@@ -188,11 +162,72 @@ struct
                                       src = [munchExp e1],
                                       dst = [r],
                                       jump = NONE}))
-      |  MEM (BINOP (PLUS, CONST i, e1)) =>
-          result (fn r => emit (OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
+      |MEM (BINOP (PLUS, CONST i, e1)) =>
+        result (fn r => emit (OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
+                                    src = [munchExp e1],
+                                    dst = [r],
+                                    jump = NONE}))
+      |MEM (CONST i) =>
+        result (fn r => emit (OPER {assem = "movl "^ Int.toString i ^", `d0",
+                                    src = [],
+                                    dst = [r],
+                                    jump = NONE}))
+      |MEM e =>
+        result (fn r => emit (OPER {assem = "movl (`s0), `d0",
+                                    src = [munchExp e],
+                                    dst = [r],
+                                    jump = NONE}))
+      |BINOP (PLUS, e1, CONST i) =>
+        result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
+                                    src = [],
+                                    dst = [r],
+                                    jump = NONE});
+                        emit (OPER {assem = "addl `s0, `d0",
+                                    src = [munchExp e1],
+                                    dst = [r],
+                                    jump = NONE})))
+       |BINOP (PLUS, CONST i, e1) =>
+         result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
+                                      src = [],
+                                      dst = [r],
+                                      jump = NONE});
+                          emit (OPER {assem = "addl `s0, `d0",
                                       src = [munchExp e1],
                                       dst = [r],
-                                      jump = NONE}))
+                                      jump = NONE})))
+
+       |BINOP (oper, e1, e2) =>
+         let fun emitOp instr =  result (fn r => (emit (OPER {assem = "movl `s0, `d0",
+                                                              src = [munchExp e1],
+                                                              dst = [r],
+                                                              jump = NONE});
+                                                  emit (OPER {assem = instr^" `s0, `d0",
+                                                              src = [munchExp e2],
+                                                              dst = [r],
+                                                              jump = NONE})))
+         in case oper of
+            PLUS => emitOp "addl"
+            |MINUS => emitOp "subl"
+            |MUL => emitOp "mull"
+            |DIV => emitOp "divl"
+            |AND => emitOp "andl"
+            |OR => emitOp "orl"
+            |XOR => emitOp "xorl"
+            | _ => raise Fail "Shouldn't happen (munchExp)"
+         end
+
+       |CONST i =>
+        result (fn r => emit (OPER {assem = "movl $" ^ Int.toString i ^", `d0",
+                                    src = [],
+                                    dst = [r],
+                                    jump = NONE}))
+       |NAME s =>
+        result (fn r => emit (OPER {assem = "movl $" ^ s ^", `d0",
+                                    src = [],
+                                    dst = [r],
+                                    jump = NONE}))
+       |TEMP t => t
+       | _ => raise Fail "Shouldn't happen (munchExp (Call))"
 
      and munchArgs params =
       let fun munchArgsSt [] = []

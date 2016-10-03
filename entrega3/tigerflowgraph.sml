@@ -1,13 +1,15 @@
-structure tigerflowgraph =
+structure tigerflowgraph :> tigerflowgraph =
 struct
-    open tigerassem
     open tigergraph
+    open tigerassem
+    open Splayset
+    open Splaymap
+    open tigertab
 
-    datatype flowgraph = FGRAPH of
-                           {control: tigergraph.graph,
-                            def: tigertemp.temp list tigergraph.Table.table,
-                            use: tigertemp.temp list tigergraph.Table.table,
-                            ismove: bool tigergraph.Table.table}
+    datatype flowgraph = FGRAPH of {control: graph,
+                                    def: tigertemp.temp set nodeDict,
+                                    use: tigertemp.temp set nodeDict,
+                                    ismove: bool nodeDict}
 
   (* Note:  any "use" within the block is assumed to be BEFORE a "def"
         of the same variable.  If there is a def(x) followed by use(x)

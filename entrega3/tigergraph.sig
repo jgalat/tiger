@@ -15,8 +15,7 @@ sig
     val mk_edge: {from: node, to: node} -> unit
     val rm_edge: {from: node, to: node} -> unit
 
-    structure Table : TABLE
-    sharing type Table.key = node
+    type 'a nodeDict = (node , 'a) Splaymap.dict
 
     val nodename: node->string  (* for debugging only *)
 
