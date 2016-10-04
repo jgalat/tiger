@@ -5,4 +5,5 @@ struct
                               gtemp : tigergraph.node -> tigertemp.temp,
                               moves : (tigergraph.node * tigergraph.node) list}
 
+  
 end
