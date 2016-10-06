@@ -82,11 +82,11 @@ struct
                                      end
                  |EXP (CALL (NAME f, args)) =>
                     (saveCallerSaves() ;
+                    munchArgs (List.rev args);
                     emit (OPER {assem = "call "^f,
                                 src = [],
                                 dst = calldefs,
                                 jump = NONE}) ;
-                    munchArgs args ;
                     if (List.length args) > 0
                     then emit (OPER {assem = "addl " ^ Int.toString (List.length args) ^ ", " ^ sp,
                                     src = [],
