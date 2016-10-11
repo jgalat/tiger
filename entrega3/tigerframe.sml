@@ -108,4 +108,14 @@ fun procEntryExit1 (frame, body) =
   in
     seq (saveCallee @ [body] @ restoreCallee)
   end
+
+fun procEntryExit3(body, frame) =
+  let
+    val prolog =".globl "^ name frame ^ "\n"
+              ^ name frame ^ ":\n"
+              ^ "\tenter 0, " ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^"\n"
+    val epilog = "\tleave\n\tret\n\n"
+  in
+    {prolog = prolog, body = body, epilog = epilog}
+  end
 end

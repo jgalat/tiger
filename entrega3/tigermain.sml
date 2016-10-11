@@ -49,9 +49,14 @@ fun main(args) =
                 List.app (fn (c, f) => (print ("\n"^(tigerframe.name f)^":\n"); List.app (print o tigerit.tree) c)) canonized)
           else ()
     val _ = if inter then tigerinterp.inter inter canonized strings else ()
-    val all = List.concat (List.concat (List.map (fn (b, f) => [(tigerassem.LABEL {assem= tigerframe.name f ^":", lab = tigerframe.name f})] :: List.map (fn s => tigercodegen.codegen f s) b) canonized))
-    val str = List.map (fn x => tigerassem.format tigertab.name x) all
-    val _ = List.map print str
+    fun prt (body, frame) =
+      let
+        val asm = List.concat (List.map (tigercodegen.codegen frame) body)
+        val {prolog, body, epilog} = tigerframe.procEntryExit3 (asm, frame)
+        val str = List.map (tigerassem.format tigertab.name) asm
+      in (print prolog; List.map print str; print epilog)
+      end
+    val _ = if code then List.app prt canonized else ()
   in
     print "Y!!\n"
   end  handle Fail s => print("Fail: "^s^"\n")

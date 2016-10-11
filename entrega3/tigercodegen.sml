@@ -87,12 +87,6 @@ struct
                                 src = [],
                                 dst = calldefs,
                                 jump = NONE}) ;
-                    if (List.length args) > 0
-                    then emit (OPER {assem = "addl " ^ Int.toString (List.length args) ^ ", " ^ sp,
-                                    src = [],
-                                    dst = [],
-                                    jump = NONE})
-                    else ();
                     restoreCallerSaves())
                  |EXP (CALL _) => raise Fail "Shouldn't happen (munchStm CALL _)"
                  |EXP e => emit (tigerassem.MOVE {assem = "movl `s0 `d0",
