@@ -30,9 +30,6 @@ val di = "%edi"
 val bx = "%ebx"
 val cx = "%ecx"
 val dx = "%edx"
-val ds = "%ds"
-val es = "%es"
-val ss = "%ss"
 val wSz = 4            (* word size in bytes *)
 val log2WSz = 2        (* base two logarithm of word size in bytes *)
 val fpPrev = 0         (* offset (bytes) *)
@@ -47,7 +44,7 @@ val calldefs = [rv]
 val specialregs = [rv, fp, sp]
 val argregs = []
 val callersaves = [rv, cx, dx]
-val calleesaves = [di, si, bx, ds, es, ss]
+val calleesaves = [di, si, bx]
 
 type frame = {
   name: string,
@@ -113,7 +110,7 @@ fun procEntryExit3(body, frame) =
   let
     val prolog =".globl "^ name frame ^ "\n"
               ^ name frame ^ ":\n"
-              ^ "\tenter 0, " ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^"\n"
+              ^ "\tenter $0, $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^"\n"
     val epilog = "\tleave\n\tret\n\n"
   in
     {prolog = prolog, body = body, epilog = epilog}

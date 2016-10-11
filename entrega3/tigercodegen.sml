@@ -87,6 +87,7 @@ struct
                                 src = [],
                                 dst = calldefs,
                                 jump = NONE}) ;
+                    (* FIXME, We lose %eax restoring the callersaves *)
                     restoreCallerSaves())
                  |EXP (CALL _) => raise Fail "Shouldn't happen (munchStm CALL _)"
                  |EXP e => emit (tigerassem.MOVE {assem = "movl `s0 `d0",
