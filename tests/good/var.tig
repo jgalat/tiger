@@ -1,0 +1,12 @@
+let
+  function f() : int =
+    let
+      var a := 70
+      var b := 71
+      function g() : int = a + b
+    in
+      g()
+    end
+in
+  f()
+end
