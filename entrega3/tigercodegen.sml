@@ -81,14 +81,11 @@ struct
                                                            dst = munchExp e1})
                                      end
                  |EXP (CALL (NAME f, args)) =>
-                    (saveCallerSaves() ;
-                    munchArgs (List.rev args);
+                    (munchArgs (List.rev args);
                     emit (OPER {assem = "call "^f,
                                 src = [],
-                                dst = calldefs,
-                                jump = NONE}) ;
-                    (* FIXME, We lose %eax restoring the callersaves *)
-                    restoreCallerSaves())
+                                dst = callersaves,
+                                jump = NONE}))
                  |EXP (CALL _) => raise Fail "Shouldn't happen (munchStm CALL _)"
                  |EXP e => emit (tigerassem.MOVE {assem = "movl `s0 `d0",
                                                   src = munchExp e,
@@ -133,7 +130,7 @@ struct
                     emit (tigerassem.LABEL {assem = lb^":",
                                             lab = lb})
 
-    and saveCallerSaves() =
+    (* and saveCallerSaves() =
       let fun emitedefs s = emit (OPER {assem = "pushl `s0",
                                         src = [s],
                                         dst = [],
@@ -151,6 +148,7 @@ struct
               in emitedefs t end
       in emitedefs (List.rev callersaves)
       end
+    *)
 
     and munchExp e =
       case e of

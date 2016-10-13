@@ -97,7 +97,7 @@ fun seq [] = EXP (CONST 0)
   | seq (x::xs) = SEQ (x, seq xs)
 
 fun procEntryExit1 (frame, body) =
-  let (* Ver si restaurar alrevés cuando sea haga push y pop *)
+  let
     val inFrames = List.map (fn _ => allocLocal frame true) calleesaves
     val calleesaves' = List.map TEMP calleesaves
     val saveCallee = List.map (fn (f, r) => MOVE (exp f (TEMP fp), r)) (ListPair.zip (inFrames, calleesaves'))
@@ -110,7 +110,7 @@ fun procEntryExit3(body, frame) =
   let
     val prolog =".globl "^ name frame ^ "\n"
               ^ name frame ^ ":\n"
-              ^ "\tenter $0, $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^"\n"
+              ^ "\tenter $0, $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^ "\n"
     val epilog = "\tleave\n\tret\n\n"
   in
     {prolog = prolog, body = body, epilog = epilog}

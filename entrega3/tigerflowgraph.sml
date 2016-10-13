@@ -11,7 +11,7 @@ struct
                                     use: tigertemp.temp set nodeDict,
                                     ismove: bool nodeDict}
 
-    fun makeGraph instrList = (* LABEL son nodos? o apuntamos a su primer instruccion inmediata *)
+    fun makeGraph instrList =
       let val g = newGraph()
           val tl = ref (tigertab.tabNueva())
           fun inl [] = []
