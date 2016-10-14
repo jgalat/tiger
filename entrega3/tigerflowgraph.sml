@@ -17,11 +17,13 @@ struct
           fun inl [] = []
           |   inl ((lab as LABEL {lab = l, ...}) :: t) =
                 let val n = newNode g
-                in tigertab.tabInserta(l, n, !tl);
+                    (*val _ = print ("-INSERTADA - $$"^l^"$$\n")*)
+                in tl := tigertab.tabInserta(l, n, !tl);
                    (lab, n) :: inl t
                 end
           |   inl (x :: t) = (x , newNode g) :: inl t
           val nl = inl instrList
+          (*val _ = (print "IMPRIMIR TABLA\n" ; List.app (fn (l, n) =>  print ("label " ^ l ^"\n")) (tabAList (!tl)))*)
           fun listToSet l = addList (empty String.compare, l)
           fun instrNode [] x = x
             | instrNode [(OPER {src = src, dst = dst, jump = NONE, ...}, node)] (d, u, im) =
@@ -54,7 +56,7 @@ struct
               let
                  val newD = insert(d, node, singleton String.compare dst)
                  val newU = insert(u, node, singleton String.compare src)
-                 val newIm = insert(im, node, false)
+                 val newIm = insert(im, node, true)
               in
                 (newD, newU, newIm)
              end
@@ -62,17 +64,27 @@ struct
               let
                  val newD = insert(d, node, singleton String.compare dst)
                  val newU = insert(u, node, singleton String.compare src)
-                 val newIm = insert(im, node, false)
+                 val newIm = insert(im, node, true)
                  val _ = mk_edge {from = node, to = node2}
               in
                 instrNode ((i,node2)::t) (newD, newU, newIm)
              end
-           | instrNode [(LABEL _, node)] x = x
-           | instrNode ((LABEL _, node)::(i,node2)::t) x =
+           | instrNode [(LABEL _, node)] (d, u, im) =
               let
-                 val _ = mk_edge {from = node, to = node2}
+                val newD = insert(d, node, empty(String.compare))
+                val newU = insert(u, node, empty(String.compare))
+                val newIm = insert(im, node, false)
               in
-                instrNode ((i,node2)::t) x
+                (newD, newU, newIm)
+              end
+           | instrNode ((LABEL _, node)::(i,node2)::t) (d, u, im) =
+              let
+                val newD = insert(d, node, empty(String.compare))
+                val newU = insert(u, node, empty(String.compare))
+                val newIm = insert(im, node, false)
+                val _ = mk_edge {from = node, to = node2}
+              in
+                instrNode ((i,node2)::t) (newD, newU, newIm)
              end
           val (d, u, im) = instrNode nl (mkDict(cmpNode), mkDict(cmpNode), mkDict(cmpNode))
       in (FGRAPH {control = g, def = d, use = u, ismove = im } , List.map #2 nl)

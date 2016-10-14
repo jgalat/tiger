@@ -2,6 +2,7 @@ open tigerlex
 open tigergrm
 open tigerescap
 open tigerseman
+open tigerflowgraph
 open tigerliveness
 open BasicIO Nonstdio
 
@@ -54,7 +55,13 @@ fun main(args) =
         val asm = List.concat (List.map (tigercodegen.codegen frame) body)
         val {prolog, body, epilog} = tigerframe.procEntryExit3 (asm, frame)
         val str = List.map (tigerassem.format tigertab.name) asm
-      in (print prolog; List.map print str; print epilog)
+        val _ = (print prolog; List.map print str; print epilog)
+        val (g, l) = makeGraph asm
+        val (igraph, listgtfrt) = interferenceGraph g
+        val _ = print "INTERFERENCE GRAPH \n\n"
+        val _ = tigerliveness.show igraph
+      in
+        ()
       end
     val _ = if code then List.app prt canonized else ()
   in

@@ -5,6 +5,7 @@ sig
                               gtemp : tigergraph.node -> tigertemp.temp,
                               moves : (tigergraph.node * tigergraph.node) list}
 
-  (*val inteferenceGraph : tigerflowgraph.flowgraph -> igraph * (tigergraph.node -> tigertemp.temp list) *)
+  val interferenceGraph : tigerflowgraph.flowgraph -> igraph * (tigergraph.node -> tigertemp.temp list)
+  val show : igraph -> unit
 
 end
