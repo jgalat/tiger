@@ -16,13 +16,14 @@ fun main(args) =
       (List.exists (fn x => x=s) l, List.filter (fn x => x<>s) l)
     val (arbol, l1)    = arg(args, "-tree")
     val (escapes, l2)  = arg(l1, "-escapes")
-    val (ir, l3)    = arg(l2, "-go")
-    val (canonOp, l4)    = arg(l3, "-canon")
-    val (code, l5)    = arg(l4, "-code")
-    val (flow, l6)    = arg(l5, "-flow")
+    val (ir, l3)       = arg(l2, "-go")
+    val (canonOp, l4)  = arg(l3, "-canon")
+    val (code, l5)     = arg(l4, "-code")
+    val (flow, l6)     = arg(l5, "-flow")
     val (inter, l7)    = arg(l6, "-interp")
+    val (igraph, l8)    = arg(l7, "-igraph")
     val entrada =
-      case l7 of
+      case l8 of
       [n] => ((open_in n)
           handle _ => raise Fail (n^" doesn't exist!"))
       | [] => std_in
@@ -50,20 +51,29 @@ fun main(args) =
                 List.app (fn (c, f) => (print ("\n"^(tigerframe.name f)^":\n"); List.app (print o tigerit.tree) c)) canonized)
           else ()
     val _ = if inter then tigerinterp.inter inter canonized strings else ()
-    fun prt (body, frame) =
+    val asm = List.map ( fn (b,f) =>
+                          let
+                            val asm = List.concat (List.map (tigercodegen.codegen f) b)
+                            val pbe = tigerframe.procEntryExit3 (asm, f)
+                          in pbe
+                          end ) canonized
+    fun prtCode {prolog, body, epilog} =
       let
-        val asm = List.concat (List.map (tigercodegen.codegen frame) body)
-        val {prolog, body, epilog} = tigerframe.procEntryExit3 (asm, frame)
-        val str = List.map (tigerassem.format tigertab.name) asm
+        val str = List.map (tigerassem.format tigertab.name) body
         val _ = (print prolog; List.map print str; print epilog)
-        val (g, l) = makeGraph asm
+      in () end
+    fun iGraphs {body, ...} =
+      let
+        val (g, l) = makeGraph body
         val (igraph, listgtfrt) = interferenceGraph g
-        val _ = print "INTERFERENCE GRAPH \n\n"
-        val _ = tigerliveness.show igraph
-      in
-        ()
-      end
-    val _ = if code then List.app prt canonized else ()
+      in (igraph, listgtfrt) end
+    val _ = if code then List.app prtCode asm else ()
+    val igraphs = if igraph then List.map iGraphs asm else []
+    fun appShowDot [] _ = ()
+    | appShowDot ((i, l)::is) n =
+      (tigerliveness.showDot i (Int.toString n) ; appShowDot is (n+1))
+    val _ = appShowDot igraphs 0
+
   in
     print "Y!!\n"
   end  handle Fail s => print("Fail: "^s^"\n")

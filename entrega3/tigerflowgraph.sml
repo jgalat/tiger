@@ -11,6 +11,25 @@ struct
                                     use: tigertemp.temp set nodeDict,
                                     ismove: bool nodeDict}
 
+    fun printNodos ls = List.app (fn (a,n) => print((nodename n)^" => \n")) ls
+
+    fun printLabels labs = List.app (fn (l,n)=>print(l^" => "^(nodename n)^"\n")) (tabAList labs)
+
+    fun printDatosNodo (n:node) (d:tigertemp.temp set nodeDict) u m =
+                            (print("Nodo: "^nodename n^"\n  Pred: ");
+                             List.app (fn n => print(nodename n^" ")) (pred n);
+                             print("\n  Succ: ");
+                             List.app (fn n => print(nodename n^" ")) (succ n);
+                             if isSome(peek(d,n)) then (
+                                 print("\n  Def: ");
+                                 List.app (fn l => print(l^" ")) (Splayset.listItems (find(d,n)));
+                                 print("\n  Use: ");
+                                 print("\n  Move: ");
+                                 print(if find(m,n) then "True" else "False")) else ();
+                             print("\n"))
+
+    fun printFlowGraph g d u m = List.app (fn n => printDatosNodo n d u m) (nodes g)
+
     fun makeGraph instrList =
       let val g = newGraph()
           val tl = ref (tigertab.tabNueva())
@@ -87,6 +106,7 @@ struct
                 instrNode ((i,node2)::t) (newD, newU, newIm)
              end
           val (d, u, im) = instrNode nl (mkDict(cmpNode), mkDict(cmpNode), mkDict(cmpNode))
+          (*val _ = printFlowGraph g d u im*)
       in (FGRAPH {control = g, def = d, use = u, ismove = im } , List.map #2 nl)
       end
   (* Note:  any "use" within the block is assumed to be BEFORE a "def"

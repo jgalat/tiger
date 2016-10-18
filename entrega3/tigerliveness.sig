@@ -7,5 +7,5 @@ sig
 
   val interferenceGraph : tigerflowgraph.flowgraph -> igraph * (tigergraph.node -> tigertemp.temp list)
   val show : igraph -> unit
-
+  val showDot : igraph -> string -> unit
 end
