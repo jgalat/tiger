@@ -22,7 +22,7 @@ struct
                                   src = t2})
                     else
                       emit (OPER {assem = "addl $"^ Int.toString i^", `d0",
-                                  src = [],
+                                  src = [t1],
                                   dst = [t1],
                                   jump = NONE})
                  |MOVE (TEMP t1, MEM (BINOP (PLUS, TEMP t2, CONST i))) =>
@@ -32,7 +32,7 @@ struct
                                  src = t2})
                    else
                      emit (OPER {assem = "addl $"^ Int.toString i^", `d0",
-                                 src = [],
+                                 src = [t1],
                                  dst = [t1],
                                  jump = NONE})
                  |MOVE (MEM e1, MEM e2) =>
@@ -50,10 +50,10 @@ struct
                                 dst = [],
                                 jump = NONE})
                 |MOVE (MEM (BINOP (PLUS, e1, CONST i)), e2) =>
-                   emit (OPER {assem = "movl `s0, "^ Int.toString i^"(`s1)",
-                               src = [munchExp e2, munchExp e1],
-                               dst = [],
-                               jump = NONE})
+                emit (OPER {assem = "movl `s0, "^ Int.toString i^"(`s1)",
+                            src = [munchExp e2, munchExp e1],
+                            dst = [],
+                            jump = NONE})
                 |MOVE (MEM (BINOP (PLUS, CONST i, e1)), e2) =>
                   emit (OPER {assem = "movl `s0, "^ Int.toString i^"(`s1)",
                               src = [munchExp e2, munchExp e1],
@@ -65,9 +65,9 @@ struct
                               dst = [],
                               jump = NONE})
                 |MOVE (TEMP t, CONST 0) =>
-                  emit (OPER {assem = "xor `d0, `d1",
+                  emit (OPER {assem = "xor `d0, `d0",
                               src = [],
-                              dst = [t, t],
+                              dst = [t],
                               jump = NONE})
                 |MOVE (TEMP t, e) => emit(tigerassem.MOVE {assem = "movl `s0, `d0",
                                                           src = munchExp e,
@@ -88,8 +88,8 @@ struct
                                 jump = NONE}))
                  |EXP (CALL _) => raise Fail "Shouldn't happen (munchStm CALL _)"
                  |EXP e => emit (tigerassem.MOVE {assem = "movl `s0 `d0",
-                                                  src = munchExp e,
-                                                  dst = tigertemp.newtemp()})
+                                                            src = munchExp e,
+                                                            dst = tigertemp.newtemp()})
                  |JUMP (NAME l, ls) => emit (OPER {assem = "jmp `j0",
                                                     src = [],
                                                     dst = [],
@@ -170,29 +170,44 @@ struct
                                               src = munchExp e,
                                               dst = r}))
       |BINOP (PLUS, e1, CONST i) =>
-        result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
+        let val r = munchExp e1
+        in  (emit (tigerassem.OPER {assem = "addl $" ^ Int.toString i ^ ", `d0",
+                  src = [r],
+                  dst = [r],
+                  jump = NONE}) ; r)
+        end
+        (*result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
                                     src = [],
                                     dst = [r],
                                     jump = NONE});
-                        emit (tigerassem.MOVE {assem = "addl `s0, `d0",
-                                              src = munchExp e1,
-                                              dst = r})))
+                        emit (tigerassem.OPER {assem = "addl `s0, `d0",
+                                              src = [munchExp e1, r],
+                                              dst = [r],
+                                              jump = NONE})))*)
        |BINOP (PLUS, CONST i, e1) =>
-         result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
+         let val r = munchExp e1
+         in  (emit (tigerassem.OPER {assem = "addl $" ^ Int.toString i ^ ", `d0",
+                   src = [r],
+                   dst = [r],
+                   jump = NONE}) ; r)
+         end
+         (*result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
                                       src = [],
                                       dst = [r],
                                       jump = NONE});
-                          emit (tigerassem.MOVE {assem = "addl `s0, `d0",
-                                                src = munchExp e1,
-                                                dst = r})))
+                          emit (tigerassem.OPER {assem = "addl `s0, `d0",
+                                                src = [munchExp e1, r],
+                                                dst = [r],
+                                                jump = NONE})))*)
 
        |BINOP (oper, e1, e2) =>
          let fun emitOp instr =  result (fn r => (emit (tigerassem.MOVE {assem = "movl `s0, `d0",
                                                                         src = munchExp e1,
                                                                         dst = r});
-                                                  emit (tigerassem.MOVE {assem = instr^" `s0, `d0",
-                                                                        src = munchExp e2,
-                                                                        dst = r})))
+                                                  emit (tigerassem.OPER {assem = instr^" `s0, `d0",
+                                                                        src = [munchExp e2, r],
+                                                                        dst = [r],
+                                                                        jump = NONE})))
          in case oper of
             PLUS => emitOp "addl"
             |MINUS => emitOp "subl"
@@ -233,7 +248,7 @@ struct
                                              src = [t],
                                              dst = [],
                                              jump = NONE})
-                             |MEM (CONST i) => emit (OPER {assem = "pushl ("^ Int.toString i ^")",
+                             |MEM (CONST i) => emit (OPER {assem = "pushl "^ Int.toString i,
                                                       src = [],
                                                       dst = [],
                                                       jump = NONE})

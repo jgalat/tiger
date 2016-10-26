@@ -15,7 +15,7 @@ struct
 
     fun printLabels labs = List.app (fn (l,n)=>print(l^" => "^(nodename n)^"\n")) (tabAList labs)
 
-    fun printDatosNodo (n:node) (d:tigertemp.temp set nodeDict) u m =
+    fun printDatosNodo (n:node) (d:tigertemp.temp set nodeDict) (u:tigertemp.temp set nodeDict) m =
                             (print("Nodo: "^nodename n^"\n  Pred: ");
                              List.app (fn n => print(nodename n^" ")) (pred n);
                              print("\n  Succ: ");
@@ -24,6 +24,7 @@ struct
                                  print("\n  Def: ");
                                  List.app (fn l => print(l^" ")) (Splayset.listItems (find(d,n)));
                                  print("\n  Use: ");
+                                 List.app (fn l => print(l^" ")) (Splayset.listItems (find(u,n)));
                                  print("\n  Move: ");
                                  print(if find(m,n) then "True" else "False")) else ();
                              print("\n"))

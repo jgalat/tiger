@@ -119,7 +119,7 @@ fun stringExp(s: string) =
   let  val l = newlabel()
     val len = ".long "^makestring(stringLen s)
     val str = ".string \""^s^"\""
-    val _ = datosGlobs:=(!datosGlobs @ [STRING(l, len), STRING("", str)]) 
+    val _ = datosGlobs:=(!datosGlobs @ [STRING(l, len), STRING("", str)])
   in  Ex(NAME l) end
 
 fun preFunctionDec() =
@@ -195,8 +195,10 @@ fun arrayExp{size, init} =
 let
   val s = unEx size
   val i = unEx init
+  val r = newtemp()
 in
-  Ex (externalCall("_initArray", [s, i]))
+  Ex (ESEQ (seq [EXP (externalCall("_initArray", [s, i])),
+                MOVE (TEMP r, TEMP rv)], TEMP r))
 end
 
 fun callExp (name,external,isproc,lev:level,ls) =

@@ -34,7 +34,8 @@ struct
         let val l = ListPair.zip (listItems a, listItems b)
         in List.foldl (fn (((_,x),(_,y)), b) => b andalso (Splayset.equal(x,y))) true l
         end
-      val listNodes = List.rev (nodes control)
+      (*val listNodes = List.rev (nodes control)*)
+      val listNodes = nodes control
       val _ = List.app (fn n => ( liveIn   := insert(!liveIn, n, empty(String.compare));
                                   liveOut  := insert(!liveOut, n, empty(String.compare));
                                   liveIn'  := insert(!liveIn', n, empty(String.compare));
@@ -44,14 +45,14 @@ struct
                 (*val _ = printFGNodo n def use ismove*)
                 val _ = liveIn'  := insert(!liveIn', n, find(!liveIn, n))
                 val _ = liveOut' := insert(!liveOut', n, find(!liveOut, n))
-                val predIn =  let val p = pred n
-                                  (*val _ = print "\nPREDECESORES DEL NODO\n"*)
-                                  (*val _ = List.app (fn x => printFGNodo x def use ismove) p*)
+                val i = union (useF n, difference (find (!liveOut, n), defF n))
+                val _ = liveIn := insert(!liveIn, n, i)
+                val predIn =  let val p = (* pred n *) succ n
+                              (*val _ = print "\nPREDECESORES DEL NODO\n"*)
+                              (*val _ = List.app (fn x => printFGNodo x def use ismove) p*)
                               in List.foldl (fn (n, s) => union (s, (find(!liveIn, n)))) (empty(String.compare)) p
                               end
                 val _ = liveOut := insert(!liveOut, n, predIn)
-                val i = union (useF n, difference (find (!liveOut, n), defF n))
-                val _ = liveIn := insert(!liveIn, n, i)
                 (*val _ = (print "\nLIVEIN alive\n"; f(!liveIn);print "\nLIVEOUT alive\n"; f (!liveOut))*)
                 (*val _ = print ("\n-------------------------------------------------------\n")*)
             in ()
@@ -110,14 +111,23 @@ struct
                                           then Splayset.delete (loNode, source)
                                           else loNode
                     val newMoves = Splayset.foldl (fn (tlo, m) => (let val (from, to) = (tnode dest, tnode tlo)
-                                                                           val _ = mk_edge {from = from, to = to}
-                                                                       in ((from, to)::m)
-                                                                       end)) moves loNodesFiltered
+                                                                       val _ = if eq (from, to)
+                                                                                then ()
+                                                                                else mk_edge {from = from, to = to}
+                                                                       val nm = if eq (from, to)
+                                                                                then m
+                                                                                else (from, to) :: m
+                                                                   in nm
+                                                                   end)) moves loNodesFiltered
                 in knit ns newMoves
                 end)
           else (let val defNode = defF node
                     val loNode = liveMap node
-                in (Splayset.app (fn tdef => Splayset.app (fn tlo => mk_edge {from = tnode tdef, to = tnode tlo}) loNode) defNode; knit ns moves)
+                in (Splayset.app (fn tdef => Splayset.app (fn tlo => let val (from, to) = (tnode tdef, tnode tlo)
+                                                                     in if eq (from, to)
+                                                                        then ()
+                                                                        else mk_edge {from = tnode tdef, to = tnode tlo}
+                                                                     end) loNode) defNode; knit ns moves)
                 end)
         val moves = knit listNodes []
       in
