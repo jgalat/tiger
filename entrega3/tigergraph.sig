@@ -7,6 +7,8 @@ sig
     val succ: node -> node list
     val pred: node -> node list
     val adj: node -> node list   (* succ+pred *)
+    val degree: node -> int
+    val areAdj : node -> node -> bool
     val eq: node*node -> bool
     val cmpNode: node * node -> order
 

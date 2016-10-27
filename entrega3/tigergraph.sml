@@ -38,6 +38,13 @@ struct
                    end
   fun adj gi = pred gi @ succ gi
 
+  fun degree n = length (adj n)
+
+  fun areAdj m n =  let val adjm = adj m
+                    in List.exists (fn x => eq (n, x)) adjm
+                    end
+
+
   fun newNode g = (* binary search for unused node *)
     let fun look(lo,hi) =
                (* i < lo indicates i in use

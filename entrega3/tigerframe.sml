@@ -27,9 +27,9 @@ val rv = "%eax"        (* return value  *)
 val ov = "%edx"        (* overflow value (edx en el 386) *)
 val si = "%esi"
 val di = "%edi"
+val ip = "%eip"
 val bx = "%ebx"
 val cx = "%ecx"
-val dx = "%edx"
 val wSz = 4            (* word size in bytes *)
 val log2WSz = 2        (* base two logarithm of word size in bytes *)
 val fpPrev = 0         (* offset (bytes) *)
@@ -43,8 +43,9 @@ val localsGap = ~1     (* words *)
 val calldefs = [rv]
 val specialregs = [rv, fp, sp]
 val argregs = []
-val callersaves = [rv, cx, dx]
+val callersaves = [rv, cx, ov]
 val calleesaves = [di, si, bx]
+val allregs = [fp, sp, rv, ov, di, si, bx, cx, ip]
 
 type frame = {
   name: string,

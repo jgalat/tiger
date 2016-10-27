@@ -75,7 +75,7 @@ fun main(args) =
     val _ = appShowDot igraphs 0
 
   in
-    print "Y!!\n"
+    print "yeaboi!!\n"
   end  handle Fail s => print("Fail: "^s^"\n")
 
 val _ = main(CommandLine.arguments())

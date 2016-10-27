@@ -43,6 +43,7 @@ struct
                 end
           |   inl (x :: t) = (x , newNode g) :: inl t
           val nl = inl instrList
+
           (*val _ = (print "IMPRIMIR TABLA\n" ; List.app (fn (l, n) =>  print ("label " ^ l ^"\n")) (tabAList (!tl)))*)
           fun listToSet l = addList (empty String.compare, l)
           fun instrNode [] x = x
@@ -108,7 +109,7 @@ struct
              end
           val (d, u, im) = instrNode nl (mkDict(cmpNode), mkDict(cmpNode), mkDict(cmpNode))
           (*val _ = printFlowGraph g d u im*)
-      in (FGRAPH {control = g, def = d, use = u, ismove = im } , List.map #2 nl)
+      in (FGRAPH {control = g, def = d, use = u, ismove = im }, List.map #2 nl)
       end
   (* Note:  any "use" within the block is assumed to be BEFORE a "def"
         of the same variable.  If there is a def(x) followed by use(x)
