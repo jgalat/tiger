@@ -2,7 +2,7 @@
 
 for i in tests/good/*.tig; do
     echo "$i"
-    ./entrega1/tiger "$i"
+    ./entrega3/tiger "$i" -code
     read
     echo "==========================================="
 done
