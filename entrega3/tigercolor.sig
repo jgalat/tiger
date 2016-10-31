@@ -1,7 +1,9 @@
 signature tigercolor =
 sig
 
-  val alloc : tigerassem.instr list * tigerframe.frame -> unit(*allocation * tigerassem.instr list*)
+  type allocation = (tigertemp.temp, tigerframe.register) Splaymap.dict
+
+  val alloc : tigerassem.instr list * tigerframe.frame -> allocation * tigerassem.instr list
 
 
 end
