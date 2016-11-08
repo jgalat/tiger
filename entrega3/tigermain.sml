@@ -5,6 +5,7 @@ open tigerseman
 open tigerflowgraph
 open tigerliveness
 open BasicIO Nonstdio
+open Process
 
 fun lexstream(is: instream) =
   Lexing.createLexer(fn b => fn n => buff_input is b 0 n);
@@ -21,7 +22,7 @@ fun main(args) =
     val (code, l5)     = arg(l4, "-code")
     val (flow, l6)     = arg(l5, "-flow")
     val (inter, l7)    = arg(l6, "-interp")
-    val (igraph, l8)    = arg(l7, "-igraph")
+    val (igraph, l8)   = arg(l7, "-igraph")
     val entrada =
       case l8 of
       [n] => ((open_in n)
@@ -55,14 +56,29 @@ fun main(args) =
                           let
                             val asm = List.concat (List.map (tigercodegen.codegen f) b)
                             val pbe = tigerframe.procEntryExit3 (asm, f)
-                          in pbe
+                          in (pbe, f)
                           end ) canonized
-    fun prtCode {prolog, body, epilog} =
+    fun prtCode ({prolog, body, epilog}, _) =
       let
         val str = List.map (tigerassem.format tigertab.name) body
         val _ = (print prolog; List.map print str; print epilog)
       in () end
-    fun iGraphs {body, ...} =
+
+    fun prtCodeColored out ({prolog, body, epilog}, frame) =
+      let
+        val (allocation, newbody) = tigercolor.alloc(body, frame)
+        fun saytemp s = Splaymap.find(allocation, s)
+        fun xd x = case Char.toString x of
+                      "~" => (case Char.fromString "-" of
+                              SOME c => c
+                              | _    => raise Fail "Shouldn't happen (prtCodeColored)")
+                    | _ => x
+        val str = List.map (tigerassem.format saytemp) newbody
+        val str = List.map (String.map xd) str
+        val _ = (output (out, prolog); List.map (fn s => output(out, s)) str; output (out, epilog))
+      in () end
+
+    fun iGraphs ({body, ...}, _) =
       let
         val (g, l) = makeGraph body
         val (igraph, listgtfrt) = interferenceGraph g
@@ -73,7 +89,10 @@ fun main(args) =
     | appShowDot ((i, l)::is) n =
       (tigerliveness.showDot i (Int.toString n) ; appShowDot is (n+1))
     val _ = appShowDot igraphs 0
-
+    val outfile = open_out "tigermain.s"
+    val _ = List.map (prtCodeColored outfile) asm
+    val _ = close_out outfile
+    val _ = system "gcc runtime.c tigermain.s -m32 -g"
   in
     print "yeaboi!!\n"
   end  handle Fail s => print("Fail: "^s^"\n")

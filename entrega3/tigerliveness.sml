@@ -66,8 +66,8 @@ struct
         do (iter listNodes);
         (*print "\nLIVEIN\n"; f(!liveIn);print "\nLIVEOUT\n"; f (!liveOut);*)
         let val dict = transform (Splayset.listItems) (!liveOut)
-        in (fn n => find(!liveOut, n),
-            fn n => find(dict, n))
+        in (fn n => find(!liveOut, n) handle NotFound => raise Fail "LIVEMAP",
+            fn n => find(dict, n) handle NotFound => raise Fail "LIVEMAP 2")
         end)
     end
 

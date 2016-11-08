@@ -211,8 +211,8 @@ struct
          in case oper of
             PLUS => emitOp "addl"
             |MINUS => emitOp "subl"
-            |MUL => emitOp "mull"
-            |DIV => emitOp "divl"
+            |MUL => emitOp "imull" (*Arreglar la mult*)
+            |DIV => emitOp "divl" (* Arreglar division*)
             |AND => emitOp "andl"
             |OR => emitOp "orl"
             |XOR => emitOp "xorl"

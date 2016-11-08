@@ -3,6 +3,7 @@ struct
 
   open Splayset
   open Splaymap
+
   open tigerflowgraph
   open tigergraph
 
@@ -23,15 +24,20 @@ struct
 
   val initColor = List.foldl (fn (r, dict) => insert(dict, r, r)) (mkDict(String.compare)) tigerframe.allregs
 
-  fun safeFind (d, k, i) =
+  fun safeFind(d, k, i) =
     case peek (d, k) of
       SOME s => s
       |NONE  => i
 
+  fun safeDelete (s, i) =
+    if (member (s, i))
+    then (delete (s,i))
+    else s
+
   val emptySTemp = empty (String.compare)
   val emptySNode = empty (tigergraph.cmpNode)
 
-  fun alloc (instr, frame) =
+  fun alloc' (instr, frame, init) =
     let
       fun preparation () =
         let
@@ -39,16 +45,11 @@ struct
           val instrnode = ListPair.zip (listNodes, instr)
           val dictInstrNode = List.foldl (fn ((n, i), d) => insert (d, n, i)) (mkDict (tigergraph.cmpNode)) instrnode
           val (liveMap, _) = tigerliveness.liveAnalysis fg
-          val listNodes = nodes (control)
-          val tempslm = List.foldl (fn (n, s) => union (s, liveMap n)) (empty(String.compare)) listNodes
-          val temps = List.foldl (fn (n, s) => union (s, find(def, n))) tempslm listNodes
-          val initial = Splayset.difference (temps, precolored)
-        in  (initial, fg, liveMap, fn x => find(dictInstrNode, x))
+        in  (fg, liveMap, fn x => find(dictInstrNode, x) handle NotFound => raise Fail "preparation1")
         end
-
-      val (init, fg as FGRAPH{control, def, use, ismove}, liveMap, nodeToInstr) = preparation()
-      fun defF n = find (def, n)
-      fun useF n = find (use, n)
+      val (fg as FGRAPH{control, def, use, ismove}, liveMap, nodeToInstr) = preparation()
+      fun defF n = find(def, n) handle NotFound => raise Fail "DEFF"
+      fun useF n = find(use, n) handle NotFound => raise Fail "USEF"
       val initial = ref init
       val simplifyWorkList = ref emptySTemp
       val freezeWorkList = ref emptySTemp
@@ -72,17 +73,17 @@ struct
       val instrs = ref instr
 
       fun addEdge (t1, t2) =
-        (if (not (member(!adjSet, (t1, t2)))) andalso (t1 <> t2)
-        then adjSet := addList (!adjSet, [(t1, t2), (t2, t1)])
-        else ();
-        if (not (member(precolored, t1)))
-        then (adjList := insert(!adjList, t1, add(safeFind(!adjList, t1, emptySTemp), t2)) ;
-              degree := insert (!degree, t1, safeFind(!degree, t1, 0) + 1))
-        else ();
-        if (not (member(precolored, t2)))
-        then (adjList := insert(!adjList, t2, add(safeFind(!adjList, t2, emptySTemp), t1)) ;
-              degree := insert (!degree, t2, safeFind(!degree, t2, 0) + 1))
-        else ())
+        if (not (member(!adjSet, (t1, t2)))) andalso (t1 <> t2)
+        then  (adjSet := addList (!adjSet, [(t1, t2), (t2, t1)]);
+              if (not (member(precolored, t1)))
+              then (adjList := insert(!adjList, t1, add(safeFind(!adjList, t1, emptySTemp), t2)) ;
+                    degree := insert (!degree, t1, safeFind(!degree, t1, 0) + 1))
+              else ();
+              if (not (member(precolored, t2)))
+              then (adjList := insert(!adjList, t2, add(safeFind(!adjList, t2, emptySTemp), t1)) ;
+                    degree := insert (!degree, t2, safeFind(!degree, t2, 0) + 1))
+              else ())
+        else ()
 
       fun build() =
         let
@@ -91,7 +92,7 @@ struct
           fun auxLive iNode =
             let
               val _ = live := liveMap iNode
-              val _ = if find(ismove, iNode)
+              val _ = if find(ismove, iNode) handle NotFound => raise Fail "AUXLIVE BUILD"
                       then
                         (live := difference (!live, useF iNode);
                         Splayset.app (fn n => moveList := insert(!moveList, n, add(safeFind(!moveList, n, emptySNode), iNode))) (union (defF iNode, useF iNode));
@@ -105,18 +106,18 @@ struct
         end
 
       fun nodeMoves n =
-        let val m = find(!moveList, n)
+        let val m = safeFind(!moveList, n, emptySNode)
         in intersection (m, union (!activeMoves, !worklistMoves))
         end
 
-      fun moveRelated n = isEmpty (nodeMoves n)
+      fun moveRelated n = not(isEmpty (nodeMoves n))
 
       fun makeWorkList () =
         let
           fun aux n =
             let
-              val _ = initial := delete (!initial, n)
-              val _ = if (find (!degree, n)) >= K
+              val _ = initial := safeDelete(!initial, n)
+              val _ = if (safeFind(!degree, n, 0) >= K)
                       then spillWorkList := add(!spillWorkList, n)
                       else if moveRelated n
                           then freezeWorkList := add(!freezeWorkList, n)
@@ -127,7 +128,7 @@ struct
         end
 
       fun adjacent n =
-        let val m = find(!adjList, n)
+        let val m = safeFind(!adjList, n, emptySTemp)
         in difference (m, union (listToSet (!selectStack), !coalescedNodes))
         end
 
@@ -135,7 +136,7 @@ struct
         let
           fun aux m =
             if member (!activeMoves, m)
-            then (activeMoves := delete(!activeMoves, m);
+            then (activeMoves := safeDelete(!activeMoves, m);
                   worklistMoves := add(!worklistMoves, m))
             else ()
       in Splayset.app (fn n => Splayset.app aux (nodeMoves n)) nodes
@@ -143,11 +144,11 @@ struct
 
       fun decrementDegree n =
         let
-          val d = find(!degree, n)
-          val _ = degree := insert (!degree, n, d - 1)
+          val d = safeFind(!degree, n, 0)
+          val _ = degree := insert (!degree, n, Int.min(d - 1, 0))
           val _ = if d = K
-                  then (enableMoves (add (adjacent n, n)) ;
-                        spillWorkList := delete(!spillWorkList, n);
+                  then (enableMoves (add (adjacent n, n));
+                        spillWorkList := safeDelete(!spillWorkList, n);
                         if moveRelated n
                         then freezeWorkList := add(!freezeWorkList, n)
                         else simplifyWorkList := add(!simplifyWorkList, n))
@@ -161,47 +162,48 @@ struct
         else
           let
             val n = hd (Splayset.listItems (!simplifyWorkList))
-            val _ = simplifyWorkList := delete (!simplifyWorkList, n)
-            val _ = push(n, selectStack)
+            val _ = simplifyWorkList := safeDelete(!simplifyWorkList, n)
+            (*val _ = print ("--------------------" ^ n ^ "---------------------\n")*)
+            val _ = push n selectStack
             val _ = Splayset.app decrementDegree (adjacent n)
           in ()
           end
 
       fun OK(t, r) =
-        ( ((find(!degree, t)) < K) orelse (member(precolored, t)) orelse (member (!adjSet, (t,r))))
+        ( ( (safeFind(!degree, t, 0)) < K) orelse (member(precolored, t)) orelse (member (!adjSet, (t,r))))
 
       fun addWorkList u =
-        if (not (member (precolored, u))) andalso (not (moveRelated u)) andalso (find(!degree, u) < K)
-        then (freezeWorkList := delete(!freezeWorkList, u);
-              simplifyWorkList := delete(!simplifyWorkList, u))
+        if (not (member (precolored, u))) andalso (not (moveRelated u)) andalso ((safeFind(!degree, u, 0) < K))
+        then (freezeWorkList := safeDelete(!freezeWorkList, u);
+              simplifyWorkList := add(!simplifyWorkList, u))
         else ()
 
       fun conservative nodes =
         let
-          val k = Splayset.foldl (fn (n, k) => if (find(!degree, n) >= K)
-                                               then k+1
+          val k = Splayset.foldl (fn (n, k) => if (safeFind(!degree, n, 0) >= K)
+                                               then k + 1
                                                else k) 0 nodes
         in k < K
         end
 
       fun getAlias n =
         if (member(!coalescedNodes, n))
-        then getAlias (find(!alias, n))
+        then getAlias (find(!alias, n) handle NotFound => raise Fail "GETALIAS")
         else n
 
       fun combine (u, v) =
         let
           val _ = if (member (!freezeWorkList, v))
-                  then (freezeWorkList := delete(!freezeWorkList, v))
-                  else (spillWorkList := delete(!spillWorkList, v))
+                  then freezeWorkList := (safeDelete(!freezeWorkList, v))
+                  else spillWorkList := (safeDelete(!spillWorkList, v))
           val _ = coalescedNodes := add(!coalescedNodes, v)
           val _ = alias := insert(!alias, v, u)
-          val _ = moveList := insert(!moveList, u, union (find(!moveList, u), find(!moveList, v)))
+          val _ = moveList := insert(!moveList, u, union (safeFind(!moveList, u, emptySNode), safeFind(!moveList, v, emptySNode)))
           val _ = enableMoves (singleton String.compare v)
           val _ = Splayset.app (fn t => (addEdge(t, u); decrementDegree t)) (adjacent v)
-          val _ = if (find(!degree, u) >= K) andalso (member (!freezeWorkList, u))
-                  then (freezeWorkList := delete(!freezeWorkList, u);
-                        spillWorkList := delete(!spillWorkList, u))
+          val _ = if (safeFind(!degree, u, 0) >= K) andalso (member (!freezeWorkList, u))
+                  then (freezeWorkList := safeDelete(!freezeWorkList, u);
+                        spillWorkList := add(!spillWorkList, u))
                   else ()
         in ()
         end
@@ -218,7 +220,7 @@ struct
             val x = getAlias x
             val y = getAlias y
             val (u, v) = if member(precolored, y) then (y, x) else (x, y)
-            val _ = worklistMoves := delete(!worklistMoves, n)
+            val _ = worklistMoves := safeDelete(!worklistMoves, n)
             val _ = if u = v
                     then (coalescedMoves := add(!coalescedMoves, n);
                          addWorkList u)
@@ -227,13 +229,13 @@ struct
                               addWorkList u;
                               addWorkList v)
                          else
-                          let val b = Splayset.foldl (fn (t,b) => OK (t,u) andalso b) true (adjacent v)
+                          let val b =  Splayset.foldl (fn (t, b) => OK (t,u) andalso b) true (adjacent v)
                           in if ((member(precolored, u) andalso b) orelse
-                                  ((not(member(precolored, u))) andalso (conservative (union (adjacent v, adjacent u)))))
+                                  ((not(member(precolored, u))) andalso (conservative (union (adjacent u, adjacent v)))))
                              then (coalescedMoves := add(!coalescedMoves, n);
                                   combine(u, v);
                                   addWorkList u)
-                             else activeMoves := add(!activeMoves, n)
+                             else (activeMoves := add(!activeMoves, n))
                           end
           in () end
 
@@ -248,10 +250,10 @@ struct
               val v = if getAlias y = getAlias u
                       then getAlias x
                       else getAlias y
-              val _ = activeMoves := delete (!activeMoves, n)
+              val _ = activeMoves := safeDelete(!activeMoves, n)
               val _ = frozenMoves := add(!frozenMoves, n)
-              val _ = if isEmpty (nodeMoves v) andalso (find (!degree, v) < K)
-                      then (freezeWorkList := delete (!freezeWorkList, v) ;
+              val _ = if isEmpty (nodeMoves v) andalso (safeFind(!degree, v, 0) < K)
+                      then (freezeWorkList := safeDelete(!freezeWorkList, v);
                             simplifyWorkList := add(!simplifyWorkList, v))
                       else ()
             in () end
@@ -259,10 +261,10 @@ struct
 
       fun freeze () =
         let
-          val n = hd (Splayset.listItems (!freezeWorkList))
-          val _ = freezeWorkList := delete (!freezeWorkList, n)
-          val _ = simplifyWorkList := add (!simplifyWorkList, n)
-        in freezeMoves n end
+          val u = hd (Splayset.listItems (!freezeWorkList))
+          val _ = freezeWorkList := safeDelete(!freezeWorkList, u)
+          val _ = simplifyWorkList := add (!simplifyWorkList, u)
+        in freezeMoves u end
 
       fun selectSpill () =
         if isEmpty (!spillWorkList)
@@ -274,7 +276,7 @@ struct
             val min = List.foldl (fn (x, m) => if x < m then x else m) (hd lInts) (tl lInts)
             val n = "T" ^ Int.toString min
             (* Otra posible heurística, elegir el que tenga mayor interferencia *)
-            val _ = spillWorkList := delete (!spillWorkList, n)
+            val _ = spillWorkList := safeDelete(!spillWorkList, n)
             val _ = simplifyWorkList := add (!simplifyWorkList, n)
           in freezeMoves n end
 
@@ -282,17 +284,19 @@ struct
         (while (not (null (!selectStack))) do
           (let
             val n = pop selectStack
+            (*val _ = print ("****************" ^ n ^ "****************\n")*)
             val okColors = ref (listToSet tigerframe.allregs)
-            val adj = find (!adjList, n)
+            val adj = safeFind(!adjList, n, emptySTemp)
             val _ = Splayset.app (fn w => if member (union (!coloredNodes, precolored), getAlias w)
-                                          then okColors := delete (!okColors, find(!color, getAlias w))
+                                          then ((*print ("NODO " ^ w ^ " " ^ (getAlias w) ^ "\n") ;*)
+                                                okColors := safeDelete(!okColors, (safeFind(!color, getAlias w, ""))))
                                           else ()) adj
             val _ = if isEmpty (!okColors)
                     then spilledNodes := add (!spilledNodes, n)
                     else (coloredNodes := add(!coloredNodes, n) ;
                           color := insert(!color, n,  hd (Splayset.listItems (!okColors))))
           in () end);
-        Splayset.app (fn n => color := insert(!color, n, find(!color, getAlias n))) (!coalescedNodes))
+        Splayset.app (fn n => color := insert(!color, n, safeFind(!color, getAlias n, ""))) (!coalescedNodes))
 
       fun rewriteProgram () =
         let
@@ -302,16 +306,16 @@ struct
                                                           | _       => raise Fail "Shouldn't happen (rewriteProgram)") (mkDict(String.compare)) (!spilledNodes)
           fun store ts def =
             let
-              val n = find(dictFrame, def)
+              val n = find(dictFrame, def) handle NotFound => raise Fail "STORE RW"
             in
-              tigerassem.OPER {assem = "movb `s0, " ^ Int.toString n ^ "(`s1)", src = [ts, tigerframe.fp], dst = [], jump = NONE }
+              tigerassem.OPER {assem = "movl `s0, " ^ Int.toString n ^ "(`s1)", src = [ts, tigerframe.fp], dst = [], jump = NONE }
             end
 
           fun fetch ts use =
             let
-              val n = find(dictFrame, use)
+              val n = find(dictFrame, use) handle NotFound => raise Fail "FETCH RW"
             in
-              tigerassem.OPER { assem = "movb " ^ Int.toString n ^ "(`s0), `d0", src = [tigerframe.fp], dst = [ts], jump = NONE }
+              tigerassem.OPER { assem = "movl " ^ Int.toString n ^ "(`s0), `d0", src = [tigerframe.fp], dst = [ts], jump = NONE }
             end
 
           fun rwDef instr def =
@@ -387,20 +391,42 @@ struct
             val _ = makeWorkList()
             fun iter () = ( if not (isEmpty (!simplifyWorkList )) then (simplify(); iter())
                             else if not (isEmpty (!worklistMoves)) then (coalesce(); iter())
-                            else if not (isEmpty (!freezeWorkList)) then (freeze(); iter())
                             else if not (isEmpty (!spillWorkList)) then (selectSpill(); iter())
+                            else if not (isEmpty (!freezeWorkList)) then (freeze(); iter())
                             else ())
             in
               (iter();
               assignColors();
               if not (isEmpty (!spilledNodes))
-              then (rewriteProgram(); main())
-              else () )
+              then (rewriteProgram();
+                    (*print "rewriteProgram---------------------\n";*)
+                    alloc' (!instrs, frame, !initial))
+              else (!color, !instrs))
             end
-
-        val _ = main()
     in
-      (!color, !instrs)
+      main()
     end
+
+fun alloc(instr, frame) =
+ let
+   fun deleteMoves color [] instr = rev instr
+   | deleteMoves color ((ins as tigerassem.MOVE{src, dst, ...}) :: inss) instr =
+     if (find(color, src) = find(color, dst))
+     then deleteMoves color inss instr
+     else deleteMoves color inss (ins :: instr)
+   | deleteMoves color (ins :: inss) instr = deleteMoves color inss (ins :: instr)
+
+   fun getRegs (tigerassem.MOVE {src=src, dst=dst, ...}, s) = addList (s,[src, dst])
+            | getRegs (tigerassem.OPER {src=src, dst=dst, ...}, s) = addList (s, src @ dst)
+            | getRegs (_, s) = s
+
+   val allTemps = List.foldl getRegs emptySTemp instr
+   val init = difference(allTemps, precolored)
+
+   val (color, instrs) = alloc' (instr, frame, init)
+   val cleansedInstrs = deleteMoves color instrs []
+ in
+    (color, cleansedInstrs)
+ end
 
 end

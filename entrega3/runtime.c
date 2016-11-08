@@ -96,6 +96,8 @@ const string consts[256] = {
 };
 string empty = {0, ""};
 
+int _tigermain (int );
+
 long *_initArray(long size, long init)
 {
     int i;

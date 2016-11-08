@@ -45,7 +45,7 @@ val specialregs = [rv, fp, sp]
 val argregs = []
 val callersaves = [rv, cx, ov]
 val calleesaves = [di, si, bx]
-val allregs = [fp, sp, rv, ov, di, si, bx, cx, ip]
+val allregs = [ov, bx, cx, di, si, fp, sp, rv]
 
 type frame = {
   name: string,
@@ -111,8 +111,10 @@ fun procEntryExit3(body, frame) =
   let
     val prolog =".globl "^ name frame ^ "\n"
               ^ name frame ^ ":\n"
-              ^ "\tenter $0, $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^ "\n"
-    val epilog = "\tleave\n\tret\n\n"
+              ^ "\tpushl %ebp\n"
+              ^ "\tmovl %esp, %ebp\n"
+              ^ "\tsubl $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^", %esp\n"
+    val epilog = "\tleave\n\tret\n"
   in
     {prolog = prolog, body = body, epilog = epilog}
   end
