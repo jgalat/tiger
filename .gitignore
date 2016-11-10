@@ -9,3 +9,5 @@ tigermain
 errlist
 *.o
 tiger
+*.s
+*.out

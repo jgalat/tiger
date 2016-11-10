@@ -114,7 +114,7 @@ fun procEntryExit3(body, frame) =
               ^ "\tpushl %ebp\n"
               ^ "\tmovl %esp, %ebp\n"
               ^ "\tsubl $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^", %esp\n"
-    val epilog = "\tleave\n\tret\n"
+    val epilog = "\tleave\n\tret\n\n"
   in
     {prolog = prolog, body = body, epilog = epilog}
   end

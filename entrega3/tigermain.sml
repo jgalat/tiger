@@ -75,8 +75,15 @@ fun main(args) =
                     | _ => x
         val str = List.map (tigerassem.format saytemp) newbody
         val str = List.map (String.map xd) str
+        val _ = (print "\n"; print prolog; List.map print str; print epilog; print "\n")
         val _ = (output (out, prolog); List.map (fn s => output(out, s)) str; output (out, epilog))
       in () end
+
+    fun prtString out (label, str) =
+    let
+      val _ = output (out, label^": ")
+      val _ = output (out, str^"\n")
+    in () end
 
     fun iGraphs ({body, ...}, _) =
       let
@@ -85,16 +92,24 @@ fun main(args) =
       in (igraph, listgtfrt) end
     val _ = if code then List.app prtCode asm else ()
     val igraphs = if igraph then List.map iGraphs asm else []
+    
     fun appShowDot [] _ = ()
     | appShowDot ((i, l)::is) n =
       (tigerliveness.showDot i (Int.toString n) ; appShowDot is (n+1))
     val _ = appShowDot igraphs 0
+
     val outfile = open_out "tigermain.s"
+    val _ = output(outfile, ".data\n")
+    val _ = List.map (prtString outfile) strings
+    val _ = output(outfile, ".text\n")
     val _ = List.map (prtCodeColored outfile) asm
     val _ = close_out outfile
-    val _ = system "gcc runtime.c tigermain.s -m32 -g"
+
+    val x = system "gcc runtime.c tigermain.s -m32 -g"
   in
-    print "yeaboi!!\n"
+    if isSuccess x
+    then print "yeaboi!!\n"
+    else print "nooboi!!\n"
   end  handle Fail s => print("Fail: "^s^"\n")
 
 val _ = main(CommandLine.arguments())

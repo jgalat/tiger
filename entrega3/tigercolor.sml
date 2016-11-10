@@ -47,6 +47,7 @@ struct
           val (liveMap, _) = tigerliveness.liveAnalysis fg
         in  (fg, liveMap, fn x => find(dictInstrNode, x) handle NotFound => raise Fail "preparation1")
         end
+
       val (fg as FGRAPH{control, def, use, ismove}, liveMap, nodeToInstr) = preparation()
       fun defF n = find(def, n) handle NotFound => raise Fail "DEFF"
       fun useF n = find(use, n) handle NotFound => raise Fail "USEF"
@@ -84,6 +85,13 @@ struct
                     degree := insert (!degree, t2, safeFind(!degree, t2, 0) + 1))
               else ())
         else ()
+
+      fun printAdjSet() =
+        let val _ = print "strict graph 0 {"
+            fun dq s = "\"" ^ s ^ "\""
+            val _ = Splayset.app (fn (x, y) => (print (dq x); print " -- "; print (dq y); print "; ")) (!adjSet)
+            val _ = print "}\n"
+        in () end
 
       fun build() =
         let
@@ -193,9 +201,10 @@ struct
 
       fun combine (u, v) =
         let
+          (*val _ = print ("combined " ^ u ^ " " ^ v ^ "\n")*)
           val _ = if (member (!freezeWorkList, v))
-                  then freezeWorkList := (safeDelete(!freezeWorkList, v))
-                  else spillWorkList := (safeDelete(!spillWorkList, v))
+                  then freezeWorkList := safeDelete(!freezeWorkList, v)
+                  else spillWorkList := safeDelete(!spillWorkList, v)
           val _ = coalescedNodes := add(!coalescedNodes, v)
           val _ = alias := insert(!alias, v, u)
           val _ = moveList := insert(!moveList, u, union (safeFind(!moveList, u, emptySNode), safeFind(!moveList, v, emptySNode)))
@@ -216,9 +225,9 @@ struct
             val n = hd (Splayset.listItems (!worklistMoves))
             val (x,y) = case nodeToInstr n of
                           (tigerassem.MOVE {src=x, dst=y, ...}) => (x, y)
-                        | _ => raise Fail "Shouldn't happen EVA' (coalesce)"
-            val x = getAlias x
-            val y = getAlias y
+                        | _ => raise Fail "Shouldn't happen (coalesce)"
+            val x = ((*print ("getAlias " ^ x ^ " == " ^ getAlias x ^ "\n") ;*) getAlias x)
+            val y = ((*print ("getAlias " ^ y ^ " == " ^ getAlias y ^ "\n") ;*) getAlias y)
             val (u, v) = if member(precolored, y) then (y, x) else (x, y)
             val _ = worklistMoves := safeDelete(!worklistMoves, n)
             val _ = if u = v
@@ -293,8 +302,10 @@ struct
                                           else ()) adj
             val _ = if isEmpty (!okColors)
                     then spilledNodes := add (!spilledNodes, n)
-                    else (coloredNodes := add(!coloredNodes, n) ;
-                          color := insert(!color, n,  hd (Splayset.listItems (!okColors))))
+                    else (coloredNodes := add(!coloredNodes, n);
+                          color := insert(!color, n,  hd (Splayset.listItems (!okColors)))
+                          (*print ("colored " ^ n ^ " with " ^ hd (Splayset.listItems (!okColors)) ^ "\n")*)
+                          )
           in () end);
         Splayset.app (fn n => color := insert(!color, n, safeFind(!color, getAlias n, ""))) (!coalescedNodes))
 
