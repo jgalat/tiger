@@ -94,30 +94,30 @@ struct
                  |CJUMP (oper, e1, e2, l1, l2) =>
                     let val t1 = munchExp e1
                         val t2 = munchExp e2
-                        fun emitjmps jt jf = (emit (OPER {assem = jf^" `j0",
-                                                          src = [],
-                                                          dst = [],
-                                                          jump = SOME [l2]}) ;
-                                              emit (OPER {assem = jt^" `j0",
-                                                          src = [],
-                                                          dst = [],
-                                                          jump = SOME [l1]}))
+                        fun emitjmps jf =(emit (OPER {assem = jf^" `j0",
+                                                      src = [],
+                                                      dst = [],
+                                                      jump = SOME [l2]}) ;
+                                          emit (OPER {assem = "jmp `j0",
+                                                      src = [],
+                                                      dst = [],
+                                                      jump = SOME [l1]}))
                         val _ = emit (OPER {assem = "cmpl `s0, `s1",
-                                    src = [t1, t2],
+                                    src = [t2, t1],
                                     dst = [],
                                     jump = NONE})
                     in
                       case oper of
-                         EQ => emitjmps "jz" "jnz"
-                        |NE => emitjmps "jnz" "jz"
-                        |LT => emitjmps "jl" "jnl"
-                        |GT => emitjmps "jg" "jng"
-                        |LE => emitjmps "jle" "jnle"
-                        |GE => emitjmps "jge" "jnge"
-                        |ULT => emitjmps "jb" "jnb"
-                        |ULE => emitjmps "jbe" "jnbe"
-                        |UGT => emitjmps "ja" "jna"
-                        |UGE => emitjmps "jae" "jnae"
+                         EQ => emitjmps "jne"
+                        |NE => emitjmps "je"
+                        |LT => emitjmps "jnl"
+                        |GT => emitjmps "jng"
+                        |LE => emitjmps "jnle"
+                        |GE => emitjmps "jnge"
+                        |ULT => emitjmps "jnb"
+                        |ULE => emitjmps "jnbe"
+                        |UGT => emitjmps "jna"
+                        |UGE => emitjmps "jnae"
                     end
                  |LABEL lb =>
                     emit (tigerassem.LABEL {assem = lb^":",
