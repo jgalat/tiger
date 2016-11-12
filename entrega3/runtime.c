@@ -109,7 +109,7 @@ long *_initArray(long size, long init)
 }
 void _checkIndexArray(long *a, long i)
 {
-	if(i<0 || i>a[-1]) {
+	if(i<0 || i>=a[-1]) {
 		fprintf(stderr, "indice %ld excedido!\n", i);
 		exit(-1);
 	}
@@ -218,7 +218,6 @@ string *getstr()
     else
 		  return (string*)(consts + i);
 }
-void f() {}
 int main()
 {
     int i;

@@ -45,7 +45,7 @@ val specialregs = [rv, fp, sp]
 val argregs = []
 val callersaves = [rv, cx, ov]
 val calleesaves = [di, si, bx]
-val allregs = [ov, bx, cx, di, si, fp, rv] (* quité sp *)
+val allregs = [ov, bx, cx, di, si, fp, rv]
 
 type frame = {
   name: string,

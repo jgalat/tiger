@@ -41,9 +41,6 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
 		formals=[TInt], result=TInt, extern=true}),
 	("exit", Func{level=topLevel(), label="exit",
 		formals=[TInt], result=TUnit, extern=true})
-		,
-	("f", Func{level=topLevel(), label="f",
-		formals=[], result=TUnit, extern=true})
 	])
 
 fun tipoReal (TTipo (s, ref (SOME t))) = t
