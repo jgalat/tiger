@@ -441,7 +441,7 @@ fun alloc(instr, frame) =
    val (color, instrs) = alloc' (instr, frame, init)
    val cleansedInstrs = deleteMoves color instrs []
  in
-    (color, instrs)
+    (color, cleansedInstrs)
  end
 
 end

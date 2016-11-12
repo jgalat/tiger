@@ -210,7 +210,7 @@ fun transExp(venv, tenv) =
 			let val {exp = expHi, ty = typHi} = trexp hi
 					val {exp = expLo, ty = typLo} = trexp lo
 					val _ = if tiposIguales typLo TInt andalso tiposIguales typHi TInt then () else error("boundaries not Int", nl)
-					val acc' = allocLocal (topLevel()) (!escape)
+					val acc' = allocLocal (topLevel()) true
 					val lvl = getActualLev()
 					val _ = preWhileForExp()
 					val venv' = fromTab venv

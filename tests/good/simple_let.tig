@@ -1,0 +1,5 @@
+let
+   var a := 70
+in
+  a
+end

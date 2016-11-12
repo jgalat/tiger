@@ -1,7 +1,10 @@
 let
   type  arrtype = array of int
   var length := 10
+  var arr2 : arrtype := arrtype [length] of 80
   var arr1 : arrtype := arrtype [length] of 70
+  var arr2 : arrtype := arrtype [length] of 90
+
 
   function printint (i : int) =
     let function f (i : int) =
@@ -17,7 +20,7 @@ let
    do (printint(arr[i]); print("-"))
 
 in
-  arr1[10] := 72;
+  arr1[9] := 72;
   printarr(arr1);
   0
 end

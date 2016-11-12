@@ -286,8 +286,8 @@ fun forExp {lo, hi, var, body} =
                                     LABEL lsal]
                               else [MOVE (var', unEx lo),
                                     LABEL l2,
-                                    CJUMP (EQ, var', CONST h, lsal, l1),
                                     unNx body,
+                                    CJUMP (EQ, var', CONST h, lsal, l1),
                                     LABEL l1,
                                     MOVE (var', BINOP (PLUS, var', CONST 1)),
                                     JUMP (NAME l2, [l2]),
@@ -295,9 +295,10 @@ fun forExp {lo, hi, var, body} =
              | _         => let val t = newtemp()
                              in [MOVE (var', unEx lo),
                                 MOVE (TEMP t, unEx hi),
+                                CJUMP (LE, var', TEMP t, l2, lsal),
                                 LABEL l2,
                                 unNx body,
-                                CJUMP (EQ, var', TEMP t, lsal, l1),
+                                CJUMP (EQ, TEMP t, var', lsal, l1),
                                 LABEL l1,
                                 MOVE (var', BINOP (PLUS, var', CONST 1)),
                                 JUMP (NAME l2, [l2]),
