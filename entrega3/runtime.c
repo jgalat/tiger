@@ -136,18 +136,18 @@ long _stringCompare(string *s, string *t)
 {
     int i;
     if(s == t)
-		return 0;
+  		return 0;
     for(i = 0; i<s->length && i<t->length; i++)
-		if(s->chars[i]!=t->chars[i])
-		    return s->chars[i]-t->chars[i];
-	return s->length-t->length;
+  		if(s->chars[i]!=t->chars[i])
+  		    return s->chars[i]-t->chars[i];
+	  return s->length-t->length;
 }
 void print(string *s)
 {
     int i;
     unsigned char *p = s->chars;
     for (i = 0; i < s->length; i++, p++)
-		putchar(*p);
+		  putchar(*p);
 }
 void flush()
 {
@@ -163,8 +163,8 @@ long ord(string *s)
 string *chr(long i)
 {
     if (i < 0 || i >= 256) {
-		printf("chr(%ld) out of range\n", i);
-		exit(1);
+  		printf("chr(%ld) out of range\n", i);
+  		exit(1);
     }
     return (string*)(consts + i);
 }
@@ -214,10 +214,11 @@ string *getstr()
 {
     int i = getc(stdin);
     if (i == EOF)
-		return &empty;
+		  return &empty;
     else
-		return (string*)(consts + i);
+		  return (string*)(consts + i);
 }
+void f() {}
 int main()
 {
     int i;

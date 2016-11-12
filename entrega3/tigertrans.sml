@@ -220,7 +220,7 @@ fun callExp (name,external,isproc,lev:level,ls) =
             | Ex (TEMP s) => preparaArgs t ((TEMP s)::rt, re)
             | _           =>  let val t' = newtemp()
                               in preparaArgs t ((TEMP t')::rt, (MOVE (TEMP t', unEx h))::re) end
-      val (ta, ls') = preparaArgs ((*List.rev*) ls) ([], [])
+      val (ta, ls') = preparaArgs (ls) ([], [])
       val ta' = if external then ta else (fpLev::ta)
     in if isproc then Nx (seq (ls'@[EXP (CALL (NAME name, ta'))]))
        else let val tmp = newtemp()

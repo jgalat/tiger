@@ -52,6 +52,7 @@ struct
       fun defF n = find(def, n) handle NotFound => raise Fail "DEFF"
       fun useF n = find(use, n) handle NotFound => raise Fail "USEF"
       val initial = ref init
+      (*val _ = (Splayset.app (fn x => print(x^", ")) init; print("\n"))*)
       val simplifyWorkList = ref emptySTemp
       val freezeWorkList = ref emptySTemp
       val spillWorkList = ref emptySTemp
@@ -87,7 +88,7 @@ struct
         else ()
 
       fun printAdjSet() =
-        let val _ = print "strict graph 0 {"
+        let val _ = print ("strict graph " ^ tigerframe.name frame ^ " {")
             fun dq s = "\"" ^ s ^ "\""
             val _ = Splayset.app (fn (x, y) => (print (dq x); print " -- "; print (dq y); print "; ")) (!adjSet)
             val _ = print "}\n"
@@ -110,6 +111,7 @@ struct
               val _ = Splayset.app (fn d => Splayset.app (fn l => addEdge (l, d)) (!live)) (defF iNode)
             in () end
         in
+          (*(List.app auxLive lRevNodes; printAdjSet())*)
           List.app auxLive lRevNodes
         end
 
@@ -153,7 +155,7 @@ struct
       fun decrementDegree n =
         let
           val d = safeFind(!degree, n, 0)
-          val _ = degree := insert (!degree, n, Int.min(d - 1, 0))
+          val _ = degree := insert (!degree, n, Int.max(d - 1, 0))
           val _ = if d = K
                   then (enableMoves (add (adjacent n, n));
                         spillWorkList := safeDelete(!spillWorkList, n);
@@ -298,7 +300,7 @@ struct
             val adj = safeFind(!adjList, n, emptySTemp)
             val _ = Splayset.app (fn w => if member (union (!coloredNodes, precolored), getAlias w)
                                           then ((*print ("NODO " ^ w ^ " " ^ (getAlias w) ^ "\n") ;*)
-                                                okColors := safeDelete(!okColors, (safeFind(!color, getAlias w, ""))))
+                                                okColors := safeDelete(!okColors, find(!color, getAlias w))) (* Quité safeFind *)
                                           else ()) adj
             val _ = if isEmpty (!okColors)
                     then spilledNodes := add (!spilledNodes, n)
@@ -391,9 +393,9 @@ struct
           val rwInstrs = procInstr [] (!instrs)
           val _ = instrs := rwInstrs
           val _ = initial := union (!coloredNodes, union (!coalescedNodes, !newTemps))
-          val _ = spilledNodes := emptySTemp
+          (*val _ = spilledNodes := emptySTemp
           val _ = coloredNodes := emptySTemp
-          val _ = coalescedNodes := emptySTemp
+          val _ = coalescedNodes := emptySTemp*)
         in () end
 
         fun main () =
@@ -409,8 +411,10 @@ struct
               (iter();
               assignColors();
               if not (isEmpty (!spilledNodes))
-              then (rewriteProgram();
-                    (*print "rewriteProgram---------------------\n";*)
+              then (
+                    (*print ("rewriteProgram- " ^ (Int.toString (Splayset.numItems(!spilledNodes))) ^ " --\n");*)
+                    (*Splayset.app (fn x => (print x; print ", ")) (!spilledNodes); print "\n";*)
+                    rewriteProgram();
                     alloc' (!instrs, frame, !initial))
               else (!color, !instrs))
             end
@@ -437,7 +441,7 @@ fun alloc(instr, frame) =
    val (color, instrs) = alloc' (instr, frame, init)
    val cleansedInstrs = deleteMoves color instrs []
  in
-    (color, cleansedInstrs)
+    (color, instrs)
  end
 
 end

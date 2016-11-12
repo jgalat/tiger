@@ -23,8 +23,9 @@ fun main(args) =
     val (flow, l6)     = arg(l5, "-flow")
     val (inter, l7)    = arg(l6, "-interp")
     val (igraph, l8)   = arg(l7, "-igraph")
+    val (asmO, l9)     = arg(l8, "-asm")
     val entrada =
-      case l8 of
+      case l9 of
       [n] => ((open_in n)
           handle _ => raise Fail (n^" doesn't exist!"))
       | [] => std_in
@@ -64,6 +65,18 @@ fun main(args) =
         val _ = (print prolog; List.map print str; print epilog)
       in () end
 
+    fun iGraphs ({body, ...}, f) =
+      let
+        val (g, l) = makeGraph body
+        val (igraph, _) = interferenceGraph g
+      in (igraph, f) end
+
+    val _ = if code then List.app prtCode asm else ()
+    val igraphs = if igraph then List.map iGraphs asm else []
+
+    fun appShowDot (i, f) = tigerliveness.showDot i (tigerframe.name f)
+    val _ = List.map appShowDot igraphs
+
     fun prtCodeColored out ({prolog, body, epilog}, frame) =
       let
         val (allocation, newbody) = tigercolor.alloc(body, frame)
@@ -75,36 +88,30 @@ fun main(args) =
                     | _ => x
         val str = List.map (tigerassem.format saytemp) newbody
         val str = List.map (String.map xd) str
-        val _ = (print "\n"; print prolog; List.map print str; print epilog; print "\n")
+        val _ = if asmO then (print "\n"; print prolog; List.map print str; print epilog; print "\n") else ()
         val _ = (output (out, prolog); List.map (fn s => output(out, s)) str; output (out, epilog))
       in () end
 
     fun prtString out (label, str) =
     let
       val _ = output (out, label^": ")
+      val _ = if asmO then print (label ^ ": ") else ()
       val _ = output (out, str^"\n")
+      val _ = if asmO then print (str ^ "\n" ) else ()
     in () end
 
-    fun iGraphs ({body, ...}, _) =
+
+    fun genAsm () =
       let
-        val (g, l) = makeGraph body
-        val (igraph, listgtfrt) = interferenceGraph g
-      in (igraph, listgtfrt) end
-    val _ = if code then List.app prtCode asm else ()
-    val igraphs = if igraph then List.map iGraphs asm else []
-    
-    fun appShowDot [] _ = ()
-    | appShowDot ((i, l)::is) n =
-      (tigerliveness.showDot i (Int.toString n) ; appShowDot is (n+1))
-    val _ = appShowDot igraphs 0
+        val outfile = open_out "tigermain.s"
+        val _ = output(outfile, ".data\n")
+        val _ = List.map (prtString outfile) strings
+        val _ = output(outfile, ".text\n")
+        val _ = List.map (prtCodeColored outfile) asm
+        val _ = close_out outfile
+      in () end
 
-    val outfile = open_out "tigermain.s"
-    val _ = output(outfile, ".data\n")
-    val _ = List.map (prtString outfile) strings
-    val _ = output(outfile, ".text\n")
-    val _ = List.map (prtCodeColored outfile) asm
-    val _ = close_out outfile
-
+    val _ = genAsm ()
     val x = system "gcc runtime.c tigermain.s -m32 -g"
   in
     if isSuccess x
