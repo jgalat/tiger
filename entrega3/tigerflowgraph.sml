@@ -37,14 +37,12 @@ struct
           fun inl [] = []
           |   inl ((lab as LABEL {lab = l, ...}) :: t) =
                 let val n = newNode g
-                    (*val _ = print ("-INSERTADA - $$"^l^"$$\n")*)
                 in tl := tigertab.tabInserta(l, n, !tl);
                    (lab, n) :: inl t
                 end
           |   inl (x :: t) = (x , newNode g) :: inl t
           val nl = inl instrList
 
-          (*val _ = (print "IMPRIMIR TABLA\n" ; List.app (fn (l, n) =>  print ("label " ^ l ^"\n")) (tabAList (!tl)))*)
           fun listToSet l = addList (empty String.compare, l)
           fun instrNode [] x = x
             | instrNode [(OPER {src = src, dst = dst, jump = NONE, ...}, node)] (d, u, im) =

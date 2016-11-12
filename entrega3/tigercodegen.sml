@@ -92,18 +92,33 @@ struct
                                             src = [munchExp e],
                                             dst = [],
                                             jump = SOME ls})
+                |CJUMP (oper, CONST a, CONST b, l1, l2) =>
+                  let fun comp oper x y =
+                        case oper of
+                          EQ => x = y
+                        | NE => x <> y
+                        | LT => x < y
+                        | GT => x > y
+                        | LE => x <= y
+                        | GE => x >= y
+                        | ULT => x < y
+                        | ULE => x <= y
+                        | UGT => x > y
+                        | UGE => x >= y
+                  in emit (OPER {assem = "jmp `j0",
+                                src = [],
+                                dst = [],
+                                jump = SOME [if (comp oper a b)
+                                             then l1 else l2]})
+                  end
+
                 |CJUMP (oper, e1, e2, l1, l2) =>
                   let val t1 = munchExp e1
                       val t2 = munchExp e2
-                      fun emitjmps j =(emit (OPER {assem = j^" `j0",
+                      fun emitjmps j =  emit (OPER {assem = j^" `j0",
                                                     src = [],
                                                     dst = [],
                                                     jump = SOME [l1, l2]})
-                                        (*; emit (OPER {assem = "jmp `j0",
-                                                    src = [],
-                                                    dst = [],
-                                                    jump = SOME [l1]})*)
-                                                    )
                       val _ = emit (OPER {assem = "cmpl `s1, `s0",
                                   src = [t1, t2],
                                   dst = [],

@@ -52,7 +52,6 @@ struct
       fun defF n = find(def, n) handle NotFound => raise Fail "DEFF"
       fun useF n = find(use, n) handle NotFound => raise Fail "USEF"
       val initial = ref init
-      (*val _ = (Splayset.app (fn x => print(x^", ")) init; print("\n"))*)
       val simplifyWorkList = ref emptySTemp
       val freezeWorkList = ref emptySTemp
       val spillWorkList = ref emptySTemp
@@ -173,7 +172,6 @@ struct
           let
             val n = hd (Splayset.listItems (!simplifyWorkList))
             val _ = simplifyWorkList := safeDelete(!simplifyWorkList, n)
-            (*val _ = print ("--------------------" ^ n ^ "---------------------\n")*)
             val _ = push n selectStack
             val _ = Splayset.app decrementDegree (adjacent n)
           in ()
@@ -203,7 +201,6 @@ struct
 
       fun combine (u, v) =
         let
-          (*val _ = print ("combined " ^ u ^ " " ^ v ^ "\n")*)
           val _ = if (member (!freezeWorkList, v))
                   then freezeWorkList := safeDelete(!freezeWorkList, v)
                   else spillWorkList := safeDelete(!spillWorkList, v)
@@ -228,8 +225,8 @@ struct
             val (x,y) = case nodeToInstr n of
                           (tigerassem.MOVE {src=x, dst=y, ...}) => (x, y)
                         | _ => raise Fail "Shouldn't happen (coalesce)"
-            val x = ((*print ("getAlias " ^ x ^ " == " ^ getAlias x ^ "\n") ;*) getAlias x)
-            val y = ((*print ("getAlias " ^ y ^ " == " ^ getAlias y ^ "\n") ;*) getAlias y)
+            val x = getAlias x
+            val y = getAlias y
             val (u, v) = if member(precolored, y) then (y, x) else (x, y)
             val _ = worklistMoves := safeDelete(!worklistMoves, n)
             val _ = if u = v
@@ -257,7 +254,7 @@ struct
             let
               val (x, y) = case nodeToInstr n of
                               (tigerassem.MOVE {src=x, dst=y, ...}) => (x, y)
-                              | _ => raise Fail "Shouldn't happen EVA' (freezeMoves)"
+                              | _ => raise Fail "Shouldn't happen (freezeMoves)"
               val v = if getAlias y = getAlias u
                       then getAlias x
                       else getAlias y
@@ -295,18 +292,15 @@ struct
         (while (not (null (!selectStack))) do
           (let
             val n = pop selectStack
-            (*val _ = print ("****************" ^ n ^ "****************\n")*)
             val okColors = ref (listToSet tigerframe.allregs)
             val adj = safeFind(!adjList, n, emptySTemp)
             val _ = Splayset.app (fn w => if member (union (!coloredNodes, precolored), getAlias w)
-                                          then ((*print ("NODO " ^ w ^ " " ^ (getAlias w) ^ "\n") ;*)
-                                                okColors := safeDelete(!okColors, find(!color, getAlias w))) (* Quité safeFind *)
+                                          then okColors := safeDelete(!okColors, find(!color, getAlias w)) (* Quité safeFind *)
                                           else ()) adj
             val _ = if isEmpty (!okColors)
                     then spilledNodes := add (!spilledNodes, n)
                     else (coloredNodes := add(!coloredNodes, n);
                           color := insert(!color, n,  hd (Splayset.listItems (!okColors)))
-                          (*print ("colored " ^ n ^ " with " ^ hd (Splayset.listItems (!okColors)) ^ "\n")*)
                           )
           in () end);
         Splayset.app (fn n => color := insert(!color, n, safeFind(!color, getAlias n, ""))) (!coalescedNodes))
@@ -393,9 +387,6 @@ struct
           val rwInstrs = procInstr [] (!instrs)
           val _ = instrs := rwInstrs
           val _ = initial := union (!coloredNodes, union (!coalescedNodes, !newTemps))
-          (*val _ = spilledNodes := emptySTemp
-          val _ = coloredNodes := emptySTemp
-          val _ = coalescedNodes := emptySTemp*)
         in () end
 
         fun main () =

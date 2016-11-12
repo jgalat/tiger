@@ -18,7 +18,7 @@ let
   function printlist (l : list) =
     if l = nil
     then print ("\n")
-    else (print (head(l)) ; printlist(tail(l)))
+    else (print (head(l)); print (" "); printlist(tail(l)))
 
 in
   (printlist(x);0)

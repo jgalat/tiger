@@ -1,3 +1,4 @@
+/* 1200  (176) */
 let
   function f (a : int) : int =
     let function g(b : int) : int =

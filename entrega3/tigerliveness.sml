@@ -25,7 +25,6 @@ struct
       fun defF n = find (def, n)
       fun useF n = find (use, n)
       fun f m = Splaymap.app (fn (k, a) => (print "TEMPS: "; Splayset.app (fn x => print ("-"^x^"")) a; print "\n")) m
-      (*val _ = (f def; print "\n-----\n" ; f use)*)
       val liveIn = ref (mkDict(cmpNode))
       val liveOut = ref (mkDict(cmpNode))
       val liveIn' = ref (mkDict(cmpNode))
@@ -34,7 +33,6 @@ struct
         let val l = ListPair.zip (listItems a, listItems b)
         in List.foldl (fn (((_,x),(_,y)), b) => b andalso (Splayset.equal(x,y))) true l
         end
-      (*val listNodes = List.rev (nodes control)*)
       val listNodes = nodes control
       val _ = List.app (fn n => ( liveIn   := insert(!liveIn, n, empty(String.compare));
                                   liveOut  := insert(!liveOut, n, empty(String.compare));
@@ -47,24 +45,18 @@ struct
                 val _ = liveOut' := insert(!liveOut', n, find(!liveOut, n))
                 val i = union (useF n, difference (find (!liveOut, n), defF n))
                 val _ = liveIn := insert(!liveIn, n, i)
-                val predIn =  let val p = (* pred n *) succ n
-                              (*val _ = print "\nPREDECESORES DEL NODO\n"*)
-                              (*val _ = List.app (fn x => printFGNodo x def use ismove) p*)
+                val predIn =  let val p = succ n
                               in List.foldl (fn (n, s) => union (s, (find(!liveIn, n)))) (empty(String.compare)) p
                               end
                 val _ = liveOut := insert(!liveOut, n, predIn)
-                (*val _ = (print "\nLIVEIN alive\n"; f(!liveIn);print "\nLIVEOUT alive\n"; f (!liveOut))*)
-                (*val _ = print ("\n-------------------------------------------------------\n")*)
             in ()
             end
       val iter = List.app alive
     in
       (
-      (*print ("\nENTRANDO A ALIVE GUACHO\n\n");*)
       iter listNodes ;
       while (not ((compareDict (!liveIn) (!liveIn')) andalso (compareDict (!liveOut) (!liveOut'))))
         do (iter listNodes);
-        (*print "\nLIVEIN\n"; f(!liveIn);print "\nLIVEOUT\n"; f (!liveOut);*)
         let val dict = transform (Splayset.listItems) (!liveOut)
         in (fn n => find(!liveOut, n) handle NotFound => raise Fail "LIVEMAP",
             fn n => find(dict, n) handle NotFound => raise Fail "LIVEMAP 2")
@@ -83,20 +75,18 @@ struct
         val graph = newGraph()
         val tempslm = List.foldl (fn (n, s) => union (s, liveMap n)) (empty(String.compare)) listNodes
         val temps = List.foldl (fn (n, s) => union (s, find(def, n))) tempslm listNodes
-        (*val _ = Splayset.app (fn x => print ("-"^x)) temps
-        val _ = print "\n\n\n"*)
+
         fun printNode s n = print (s ^ ": " ^(nodename n)^"\n")
         val tNodes = List.map (fn x => (x, newNode graph)) (Splayset.listItems temps)
         val mapTNode = List.foldl (fn ((x, n),t) => insert (t, x, n)) (mkDict(String.compare)) tNodes
-        fun tnode t  = ((*print ("tnode "^t^"\n");*) find(mapTNode, t))
+        fun tnode t  = find(mapTNode, t)
         val mapGTemp = List.foldl (fn ((x, n), t) => insert(t, n, x)) (mkDict(cmpNode)) tNodes
-        fun gtemp n = ((*printNode "gtemp" n;*) find(mapGTemp, n))
+        fun gtemp n = find(mapGTemp, n)
         fun printClavesNode m = Splaymap.app (fn (k, _) => print ((nodename k) ^"-")) m
         fun printClavesTemp m = Splaymap.app (fn (k, _) => print (k^"-")) m
-        (*val _ = (printClavesTemp mapTNode ; print "\n")*)
-        fun defF n = ((*printNode "def" n;*) find (def, n))
-        fun useF n = ((*printNode "use" n;*) find (use, n))
-        fun isMoveF n = ((* printNode "isMove" n;*) find (ismove, n))
+        fun defF n = find (def, n)
+        fun useF n = find (use, n)
+        fun isMoveF n = find (ismove, n)
         fun knit [] moves = moves
         | knit (node::ns) moves =
           if (isMoveF node)
