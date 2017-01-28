@@ -1,3 +1,3 @@
 # tiger
 
-Compilador en ML
+Tiger compiler in ML for x86 arch
